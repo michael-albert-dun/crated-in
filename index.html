@@ -6,8 +6,8 @@
     <title>Crated In</title>
     <link rel="stylesheet" href="styles.css?v=20260926f" />
     <script defer src="src/engine.js?v=20260926f"></script>
-    <script defer src="src/levels.js?v=20260926f"></script>
-    <script defer src="src/game.js?v=20260926g"></script>
+    <script defer src="src/levels.js?v=20260926g"></script>
+    <script defer src="src/game.js?v=20260926p"></script>
   </head>
   <body>
     <main>
@@ -23,17 +23,17 @@
       <p id="message" role="status"></p>
 
       <div class="bar">
-        <button type="button" id="undo">Undo <kbd>z</kbd></button>
-        <button type="button" id="restart">Restart <kbd>r</kbd></button>
+        <button type="button" id="undo">Undo (z)</button>
+        <button type="button" id="restart">Restart (r)</button>
         <span id="counts"></span>
       </div>
 
       <p id="cheat-status" role="status"></p>
 
       <details class="more">
-        <summary>Rooms and options</summary>
+        <summary>Levels and Settings</summary>
         <label>
-          Room
+          Level
           <select id="room-select"></select>
         </label>
         <label><input type="checkbox" id="opt-numbers" /> Stencil the stack height on each crate</label>

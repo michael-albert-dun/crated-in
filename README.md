@@ -19,7 +19,7 @@ games:
 python3 -m http.server 4176 --bind 127.0.0.1
 ```
 
-Then open http://127.0.0.1:4176/ for the play UI (`?room=3` jumps to a room) or
+Then open http://127.0.0.1:4176/ for the play UI (`?level=3` jumps to a level) or
 http://127.0.0.1:4176/test.html for the test UI.
 
 ### Play UI (`index.html`)
@@ -46,8 +46,8 @@ down onto the neighbours; reflooring sinks the whole floor; a fatal drop plays
 as a fall; winning is stepping out through the doorway, which carries you straight on into the next room. Starting the next move
 finishes any running animation, and `prefers-reduced-motion` skips them. Arrow
 keys or WASD move, tapping a neighbouring square works on touch, `z` undoes,
-`r` restarts and `c` peeks at a shortest solution. Options (under "Rooms and
-options") are the stencilled numbers and gentle mode; solved rooms are
+`r` restarts and `c` peeks at a shortest solution. Options (under "Levels and
+Settings") are the stencilled numbers and gentle mode; solved rooms are
 remembered in local storage.
 
 ### Test UI (`test.html`)

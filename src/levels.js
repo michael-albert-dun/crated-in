@@ -6,7 +6,7 @@
 // roughly by difficulty.
 const LEVELS = [
   {
-    name: "Room 1 (4x4, 2 pushes)",
+    name: "Level 1 (4x4, 2 pushes)",
     solution: "DRULLUUURU",
     text: `
       1  1TU 0  0
@@ -15,7 +15,7 @@ const LEVELS = [
       1  1  1  2`,
   },
   {
-    name: "Room 2 (4x4, 3 pushes)",
+    name: "Level 2 (4x4, 3 pushes)",
     solution: "UURRRRRRU",
     text: `
       0  2  2  4TU
@@ -24,7 +24,7 @@ const LEVELS = [
       #  #  1  0`,
   },
   {
-    name: "Room 3 (5x5, 5 pushes)",
+    name: "Level 3 (5x5, 5 pushes)",
     solution: "LLLULDLULLUURRDRRRR",
     text: `
       3  #  #  0  #
@@ -34,7 +34,7 @@ const LEVELS = [
       3  0  1  2SD 0`,
   },
   {
-    name: "Room 4 (5x5, 6 pushes)",
+    name: "Level 4 (5x5, 6 pushes)",
     solution: "DLLDLLUULLDDRUUULLLURURR",
     text: `
       2  0TR #  4  0
@@ -44,7 +44,7 @@ const LEVELS = [
       #  4  0  2  2`,
   },
   {
-    name: "Room 5 (5x5, 10 pushes)",
+    name: "Level 5 (5x5, 10 pushes)",
     solution: "LLURDLDDLUULDRRRRULLUURRRUURRRDDDDR",
     text: `
       2  5  0  3  0
@@ -54,7 +54,7 @@ const LEVELS = [
       0  0  2  3  3SD`,
   },
   {
-    name: "Room 6 (6x6, 11 pushes)",
+    name: "Level 6 (6x6, 11 pushes)",
     solution: "UUUUUUURURDRDDDDDDRRRURRULUUUUR",
     text: `
       2  1  4  #  4  1
@@ -65,7 +65,7 @@ const LEVELS = [
       1SD #  0  1  5  0`,
   },
   {
-    name: "Room 7 (6x6, 12 pushes)",
+    name: "Level 7 (6x6, 12 pushes)",
     solution: "UURUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
       5  2  #  #  5TU #
@@ -76,7 +76,7 @@ const LEVELS = [
       0SD #  #  #  #  #`,
   },
   {
-    name: "Room 8 (5x5, 15 pushes)",
+    name: "Level 8 (5x5, 15 pushes)",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
       2  2  1  2  0SU
@@ -86,7 +86,7 @@ const LEVELS = [
       0  1  3  0  #`,
   },
   {
-    name: "Room 9 (5x5, 9 pushes)",
+    name: "Level 9 (5x5, 9 pushes)",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
       3  #  0  1  1

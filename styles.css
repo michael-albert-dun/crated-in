@@ -140,6 +140,18 @@ kbd {
 
 .more summary {
   cursor: pointer;
+  display: block;
+  padding: 0.55rem 0.9rem;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.more[open] summary {
+  border-color: var(--accent);
 }
 
 .more label {
