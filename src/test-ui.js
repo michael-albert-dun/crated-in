@@ -225,7 +225,7 @@ function init() {
   LEVELS.forEach((level, i) => {
     const option = document.createElement("option");
     option.value = String(i);
-    option.textContent = level.name;
+    option.textContent = `${level.name} (${level.info})`;
     elements.select.appendChild(option);
   });
   elements.hints.checked = state.settings.hints;

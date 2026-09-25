@@ -1,12 +1,15 @@
 // Levels, in the text format of parseLevel(): "#" wall, a height digit, "S"
 // start and "T" target, each followed by the side of its gap (U, D, L or R):
 // "0SD" is where you enter the room, "0TL" the doorway you step out through.
+// "name" is what the play UI shows (plain "Level N" for now, since the levels
+// may get real names); "info" (size and pushes) is only for the test UI.
 // "solution" is the shortest known solution with single-spread pushes (from
 // the solver), for reference. Found with experiments/generate.js; ordered
 // roughly by difficulty.
 const LEVELS = [
   {
-    name: "Level 1 (4x4, 2 pushes)",
+    name: "Level 1",
+    info: "4x4, 2 pushes",
     solution: "DRULLUUURU",
     text: `
       1  1TU 0  0
@@ -15,7 +18,8 @@ const LEVELS = [
       1  1  1  2`,
   },
   {
-    name: "Level 2 (4x4, 3 pushes)",
+    name: "Level 2",
+    info: "4x4, 3 pushes",
     solution: "UURRRRRRU",
     text: `
       0  2  2  4TU
@@ -24,7 +28,8 @@ const LEVELS = [
       #  #  1  0`,
   },
   {
-    name: "Level 3 (5x5, 5 pushes)",
+    name: "Level 3",
+    info: "5x5, 5 pushes",
     solution: "LLLULDLULLUURRDRRRR",
     text: `
       3  #  #  0  #
@@ -34,7 +39,8 @@ const LEVELS = [
       3  0  1  2SD 0`,
   },
   {
-    name: "Level 4 (5x5, 6 pushes)",
+    name: "Level 4",
+    info: "5x5, 6 pushes",
     solution: "DLLDLLUULLDDRUUULLLURURR",
     text: `
       2  0TR #  4  0
@@ -44,7 +50,8 @@ const LEVELS = [
       #  4  0  2  2`,
   },
   {
-    name: "Level 5 (5x5, 10 pushes)",
+    name: "Level 5",
+    info: "5x5, 10 pushes",
     solution: "LLURDLDDLUULDRRRRULLUURRRUURRRDDDDR",
     text: `
       2  5  0  3  0
@@ -54,7 +61,8 @@ const LEVELS = [
       0  0  2  3  3SD`,
   },
   {
-    name: "Level 6 (6x6, 11 pushes)",
+    name: "Level 6",
+    info: "6x6, 11 pushes",
     solution: "UUUUUUURURDRDDDDDDRRRURRULUUUUR",
     text: `
       2  1  4  #  4  1
@@ -65,7 +73,8 @@ const LEVELS = [
       1SD #  0  1  5  0`,
   },
   {
-    name: "Level 7 (6x6, 12 pushes)",
+    name: "Level 7",
+    info: "6x6, 12 pushes",
     solution: "UURUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
       5  2  #  #  5TU #
@@ -76,7 +85,8 @@ const LEVELS = [
       0SD #  #  #  #  #`,
   },
   {
-    name: "Level 8 (5x5, 15 pushes)",
+    name: "Level 8",
+    info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
       2  2  1  2  0SU
@@ -86,7 +96,8 @@ const LEVELS = [
       0  1  3  0  #`,
   },
   {
-    name: "Level 9 (5x5, 9 pushes)",
+    name: "Level 9",
+    info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
       3  #  0  1  1
