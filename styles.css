@@ -1,0 +1,154 @@
+:root {
+  color-scheme: light;
+  --page: #2a2522;
+  --panel: #3a332e;
+  --ink: #f2ebe0;
+  --muted: #b9ada0;
+  --accent: #f0b84a;
+  --danger: #ff8a5c;
+  --line: #564d45;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.4;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 2rem;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
+#room-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.room {
+  margin-top: 0.6rem;
+  background: #171412;
+  border-radius: 10px;
+  padding: 0.25rem;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+#board {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+#message {
+  min-height: 2.6em;
+  margin: 0.6rem 0 0.4rem;
+  color: var(--ink);
+}
+
+#message.won {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+#message.died {
+  color: var(--danger);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+button,
+select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+kbd {
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0 0.3em;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+}
+
+#counts {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+#cheat-status {
+  min-height: 1.4em;
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+#cheat-status.dead {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.more {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.more summary {
+  cursor: pointer;
+}
+
+.more label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.tip {
+  line-height: 1.5;
+}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crated In</title>
+    <link rel="stylesheet" href="styles.css?v=20260926f" />
+    <script defer src="src/engine.js?v=20260926f"></script>
+    <script defer src="src/levels.js?v=20260926f"></script>
+    <script defer src="src/game.js?v=20260926g"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Crated In</h1>
+        <p id="room-title"></p>
+      </header>
+
+      <div class="room">
+        <svg id="board" role="img" aria-label="The room, seen from above"></svg>
+      </div>
+
+      <p id="message" role="status"></p>
+
+      <div class="bar">
+        <button type="button" id="undo">Undo <kbd>z</kbd></button>
+        <button type="button" id="restart">Restart <kbd>r</kbd></button>
+        <span id="counts"></span>
+      </div>
+
+      <p id="cheat-status" role="status"></p>
+
+      <details class="more">
+        <summary>Rooms and options</summary>
+        <label>
+          Room
+          <select id="room-select"></select>
+        </label>
+        <label><input type="checkbox" id="opt-numbers" /> Stencil the stack height on each crate</label>
+        <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
+        <p class="tip">
+          You're trapped in a room and want the way out (the lit doorway; stepping through it leads on to the next room). You can clamber up or
+          down one crate at a time. Dropping down two or more is too far. Push against a stack
+          that's too tall to climb and its top crate copies itself, the copies drift down onto the
+          neighbouring stacks, and you're lifted a level. Move with arrow keys or WASD, or tap a
+          neighbouring square. <kbd>c</kbd> peeks at a solution.
+        </p>
+      </details>
+    </main>
+  </body>
+</html>

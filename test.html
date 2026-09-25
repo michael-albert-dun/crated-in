@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crated In (test UI)</title>
+    <link rel="stylesheet" href="test.css?v=20260926f" />
+    <script defer src="src/engine.js?v=20260926f"></script>
+    <script defer src="src/levels.js?v=20260926f"></script>
+    <script defer src="src/test-ui.js?v=20260926f"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Crated In <small>(test UI)</small></h1>
+      <p class="intro">
+        Walk onto the star, then step out through the gold-marked side. You can step to a neighbour that is at most 1 higher or lower.
+        Bump into a pile 2 or more higher and its top block spreads out to its neighbours,
+        including yours.
+      </p>
+
+      <div class="controls">
+        <label>
+          Level
+          <select id="level-select"></select>
+        </label>
+        <button type="button" id="undo">Undo (z)</button>
+        <button type="button" id="restart">Restart (r)</button>
+        <button type="button" id="cheat" aria-pressed="false">Cheat (c)</button>
+      </div>
+
+      <div class="board-wrap">
+        <svg id="board" role="img" aria-label="Puzzle board"></svg>
+      </div>
+
+      <p id="status" role="status"></p>
+      <p id="counts"></p>
+      <p id="cheat-status" role="status"></p>
+
+      <fieldset class="options">
+        <legend>Test options</legend>
+        <label><input type="checkbox" id="opt-hints" /> Show move hints</label>
+        <label><input type="checkbox" id="opt-soft" /> Soft mode (big drops are blocked, not fatal)</label>
+        <label><input type="checkbox" id="opt-enough" /> Just-enough push (one bump spreads until you can walk)</label>
+      </fieldset>
+
+      <p class="legend">
+        Move: arrow keys, WASD, or tap a neighbouring square. Hints: <span class="key walk">walk</span>
+        <span class="key push">push</span> <span class="key drop">drop</span>
+      </p>
+    </main>
+  </body>
+</html>
