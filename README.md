@@ -6,7 +6,7 @@ This is an early design sketch. There is a rules engine, headless experiments,
 a play UI (`index.html`) and a test page (`test.html`, the same game with test tools).
 
 The fiction: the door slams behind you and you're crated in; across the room a
-doorway glows, your only way out. You have a wand that is supposed to move
+column of light glows, your only way out. You have a wand that is supposed to move
 crates for you but isn't working properly: all it does is destroy the top of a
 nearby stack you can't climb and put copies down on its neighbours (yours
 included, so you wind up a level higher). You can clamber up or down one
@@ -40,8 +40,12 @@ on that side, plus a half-by-half block on corners where both neighbours and the
 diagonal are outside, so rooms need not look square and the silhouette has no
 notches. A free-standing wall cell is instead a dark grey octagonal pillar (black
 inset, light eight-pointed star) on a sky-blue void tile, so it can't be
-mistaken for floor. The exit is a lit doorway with chevrons, either a gap in the
-edge or a tunnel through wall that connects to it. The entry gate is a cool
+mistaken for floor. The exit is a full square of light (nested glowing squares, seen from above
+like a shaft of light), either just off the edge of the board or filling a tunnel
+cell of wall connected to it. It is a column rather than a doorway because a
+doorway at floor level read as a fixed height, so leaving from a tall crate
+looked like a drop: stepping onto the column keeps you at your height and floats
+you up and away, with motes of light rising, into the next room. The entry gate is a cool
 blue-grey doorway with chevrons pointing in: when a room starts (also on
 restart) you walk in through it and it slides shut behind you as two leaves of
 the same grey, so once closed it is just wall.
@@ -53,7 +57,7 @@ them.
 
 Moves are animated: a push lifts the top crate, splits it, and the copies drift
 down onto the neighbours; a fatal drop plays
-as a fall; winning is stepping out through the doorway, which carries you straight on into the next room. Starting the next move
+as a fall; winning is stepping onto the column of light, which floats you up into the next room. Starting the next move
 finishes any running animation, and `prefers-reduced-motion` skips them. Arrow
 keys or WASD move, tapping a neighbouring square works on touch, `z` undoes,
 `r` restarts, `c` peeks at a shortest solution and `m` (or Escape, or the Menu

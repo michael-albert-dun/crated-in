@@ -58,6 +58,7 @@ const view = {
   ghosts: [],
   wand: null, // during a push: { d, reach, swing, glow, alpha, burst, trail }, see drawWand
   glow: 0,
+  rise: 0, // while floating up the exit column: 0..1
   entryClosed: 1, // 0 = entry doorway open, 1 = door shut
   // Reflooring shifts every height down together, which changes no rule (they all
   // depend on height differences), so the numbers just keep counting up: `offset`
@@ -147,8 +148,9 @@ function cellCentre(i) {
 // gate's own cell, with the far half left as stone, so it doesn't look like a
 // way through to whatever is on the other side of the wall cell. Returns its
 // scene rectangle (and, for a tunnel, the stone half), or null for levels
-// without a gate side.
-function gateInfo(cell, dir) {
+// without a gate side. With `full` (the exit) the rectangle is a whole square
+// instead, and there is no stone half: see drawLightColumn.
+function gateInfo(cell, dir, full = false) {
   const { width, height } = state.level;
   if (dir < 0) return null;
   const col = (cell % width) + DIRS[dir].dc;
@@ -161,14 +163,15 @@ function gateInfo(cell, dir) {
     const { dr, dc } = DIRS[dir];
     // dc > 0 means the gate cell is to the right of its own cell, so the near
     // half is the left one, and so on.
-    if (dc > 0) [rect, farRect] = [[x0, y0, x0 + CELL / 2, y1], [x0 + CELL / 2, y0, x1, y1]];
+    if (full) rect = [x0, y0, x1, y1];
+    else if (dc > 0) [rect, farRect] = [[x0, y0, x0 + CELL / 2, y1], [x0 + CELL / 2, y0, x1, y1]];
     else if (dc < 0) [rect, farRect] = [[x0 + CELL / 2, y0, x1, y1], [x0, y0, x0 + CELL / 2, y1]];
     else if (dr > 0) [rect, farRect] = [[x0, y0, x1, y0 + CELL / 2], [x0, y0 + CELL / 2, x1, y1]];
     else [rect, farRect] = [[x0, y0 + CELL / 2, x1, y1], [x0, y0, x1, y0 + CELL / 2]];
-  } else if (col < 0) rect = [0, cellY(row), PAD, cellY(row + 1)];
-  else if (col >= width) rect = [cellX(width), cellY(row), cellX(width) + PAD, cellY(row + 1)];
-  else if (row < 0) rect = [cellX(col), 0, cellX(col + 1), PAD];
-  else rect = [cellX(col), cellY(height), cellX(col + 1), cellY(height) + PAD];
+  } else if (col < 0) rect = [full ? -PAD : 0, cellY(row), PAD, cellY(row + 1)];
+  else if (col >= width) rect = [cellX(width), cellY(row), cellX(width) + (full ? CELL : PAD), cellY(row + 1)];
+  else if (row < 0) rect = [cellX(col), full ? -PAD : 0, cellX(col + 1), PAD];
+  else rect = [cellX(col), cellY(height), cellX(col + 1), cellY(height) + (full ? CELL : PAD)];
   return { row, col, onBoard, rect, farRect, dir };
 }
 
@@ -192,7 +195,7 @@ function boundaryRects(gates, outer) {
     .filter(([, dir]) => dir >= 0)
     .map(([cell, dir]) => [Math.floor(cell / W), cell % W, dir]);
   const isGap = (r, c, d) => gaps.some(([gr, gc, gd]) => gr === r && gc === c && gd === d);
-  const rects = tunnels.map((gate) => gate.farRect);
+  const rects = tunnels.map((gate) => gate.farRect).filter(Boolean);
   for (let r = 0; r < H; r += 1) {
     for (let c = 0; c < W; c += 1) {
       const tunnel = tunnelAt(r, c);
@@ -371,28 +374,51 @@ function drawPillar(g, X0, Y0) {
   poly(g, star, PILLAR.star, "#7b808a", 1);
 }
 
-// A doorway. The exit is warm and lit, with chevrons pointing out. The entry is
-// cool daylight-blue, with chevrons pointing in: where you came from.
-function drawPassage(g, [X0, Y0, X1, Y1], dirIndex, isEntry) {
+// The entry: a cool daylight-blue doorway with chevrons pointing in, where you
+// came from.
+function drawPassage(g, [X0, Y0, X1, Y1], dirIndex) {
   const dir = DIRS[dirIndex];
   const w = X1 - X0;
   const h = Y1 - Y0;
   const along = dir.dc !== 0 ? w : h;
   const outward = (Math.atan2(dir.dr, dir.dc) * 180) / Math.PI;
   const centre = `translate(${X0 + w / 2} ${Y0 + h / 2})`;
-  const palette = isEntry
-    ? { floor: "#d6e4f4", glow: "url(#glow-entry)", beam: "url(#beam-entry)", chevron: "#4a6a94" }
-    : { floor: "#ffe9a6", glow: "url(#glow)", beam: "url(#beam)", chevron: "#c98a00" };
-  const lit = isEntry ? 0.7 * (1 - view.entryClosed) : 0.55 + 0.45 * view.glow;
+  const lit = 0.7 * (1 - view.entryClosed);
   // Light spilling out beyond the doorway (hidden by the walls for a tunnel).
   const beam = svgEl("g", { transform: `${centre} rotate(${outward})`, opacity: lit }, g);
-  svgEl("rect", { x: along / 2, y: -CELL / 2, width: CELL * 1.6, height: CELL, fill: palette.beam }, beam);
-  svgEl("rect", { x: X0, y: Y0, width: w, height: h, fill: palette.floor }, g);
-  svgEl("rect", { x: X0, y: Y0, width: w, height: h, fill: palette.glow, opacity: isEntry ? 0.7 : 0.6 + 0.4 * view.glow }, g);
+  svgEl("rect", { x: along / 2, y: -CELL / 2, width: CELL * 1.6, height: CELL, fill: "url(#beam-entry)" }, beam);
+  svgEl("rect", { x: X0, y: Y0, width: w, height: h, fill: "#d6e4f4" }, g);
+  svgEl("rect", { x: X0, y: Y0, width: w, height: h, fill: "url(#glow-entry)", opacity: 0.7 }, g);
   // Chevrons (just one in the thin doorway of the boundary wall).
-  const chevrons = svgEl("g", { transform: `${centre} rotate(${isEntry ? outward + 180 : outward})` }, g);
+  const chevrons = svgEl("g", { transform: `${centre} rotate(${outward + 180})` }, g);
   for (const off of along >= CELL * 0.8 ? [-11, 5] : [-1]) {
-    svgEl("polyline", { points: `${off - 7},-11 ${off + 5},0 ${off - 7},11`, fill: "none", stroke: palette.chevron, "stroke-width": 5, "stroke-linecap": "round", "stroke-linejoin": "round" }, chevrons);
+    svgEl("polyline", { points: `${off - 7},-11 ${off + 5},0 ${off - 7},11`, fill: "none", stroke: "#4a6a94", "stroke-width": 5, "stroke-linecap": "round", "stroke-linejoin": "round" }, chevrons);
+  }
+}
+
+// The exit: a full square of light. A doorway at floor level read as a fixed
+// height, so leaving from a tall crate looked like a drop; a column of light has
+// no height, and stepping onto it floats you up and away at whatever height you
+// were. Seen from above it is nested squares narrowing to a bright middle, as if
+// looking up a shaft. `view.glow` brightens it while you leave.
+function drawLightColumn(g, [X0, Y0]) {
+  const lit = 0.6 + 0.2 * view.glow;
+  svgEl("rect", { x: X0, y: Y0, width: CELL, height: CELL, fill: "#ecca7c" }, g);
+  svgEl("rect", { x: X0, y: Y0, width: CELL, height: CELL, fill: "url(#glow)", opacity: lit }, g);
+  for (const [inset, alpha] of [[0.1, 0.18], [0.22, 0.3], [0.34, 0.5]]) {
+    const m = CELL * inset;
+    svgEl("rect", { x: X0 + m, y: Y0 + m, width: CELL - 2 * m, height: CELL - 2 * m, rx: 5, fill: `rgba(255, 255, 255, ${alpha * lit})` }, g);
+  }
+  svgEl("rect", { x: X0 + 1, y: Y0 + 1, width: CELL - 2, height: CELL - 2, fill: "none", stroke: "rgba(201, 138, 0, 0.55)", "stroke-width": 2 }, g);
+}
+
+// Motes of light streaming up the column while you float away (`view.rise`, 0..1).
+function drawMotes(g, [X0, Y0]) {
+  for (let k = 0; k < 9; k += 1) {
+    const phase = (view.rise * 1.6 + k / 9) % 1;
+    const x = X0 + CELL * (0.18 + 0.64 * ((k * 0.618) % 1));
+    const y = Y0 + CELL * (0.85 - 0.8 * phase);
+    drawSparkle(g, x, y, 3 + 2.5 * Math.sin(Math.PI * phase), Math.sin(Math.PI * phase));
   }
 }
 
@@ -537,9 +563,6 @@ function render() {
   const glow = svgEl("radialGradient", { id: "glow" }, defs);
   svgEl("stop", { offset: "0%", "stop-color": "#ffffff", "stop-opacity": 0.95 }, glow);
   svgEl("stop", { offset: "100%", "stop-color": "#ffdf80", "stop-opacity": 0 }, glow);
-  const beam = svgEl("linearGradient", { id: "beam", x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
-  svgEl("stop", { offset: "0%", "stop-color": "#fff0b3", "stop-opacity": 0.75 }, beam);
-  svgEl("stop", { offset: "100%", "stop-color": "#fff0b3", "stop-opacity": 0 }, beam);
   const glowEntry = svgEl("radialGradient", { id: "glow-entry" }, defs);
   svgEl("stop", { offset: "0%", "stop-color": "#ffffff", "stop-opacity": 0.9 }, glowEntry);
   svgEl("stop", { offset: "100%", "stop-color": "#b9d2f0", "stop-opacity": 0 }, glowEntry);
@@ -562,15 +585,15 @@ function render() {
   svgEl("feComposite", { in: "mixed", in2: "SourceGraphic", operator: "in" }, noise);
   const floor = svgEl("g", {}, svg);
   const scene = svgEl("g", {}, svg);
-  const exit = gateInfo(level.target, level.exitDir);
+  const exit = gateInfo(level.target, level.exitDir, true);
   const entry = gateInfo(level.start, level.startDir);
   const gates = [exit, entry].filter(Boolean);
   const items = [];
   const distance2 = (x, y) => (x - geo.cx) ** 2 + (y - geo.cy) ** 2;
 
-  if (exit) drawPassage(floor, exit.rect, level.exitDir, false);
+  if (exit) drawLightColumn(floor, exit.rect);
   // Once shut, the entry is plain wall: drawing the doorway under it would leak a pale edge.
-  if (entry && view.entryClosed < 0.999) drawPassage(floor, entry.rect, level.startDir, true);
+  if (entry && view.entryClosed < 0.999) drawPassage(floor, entry.rect, level.startDir);
   for (let br = 0; br < level.height; br += 1) {
     for (let bc = 0; bc < level.width; bc += 1) {
       const i = br * level.width + bc;
@@ -604,6 +627,7 @@ function render() {
     items.push({ key: ghost.under ? view.player.z + 0.4 : ghost.z + 1, dist: 0, draw: (g) => drawGhost(g, ghost) });
   }
   items.push({ key: view.player.z + 0.5, dist: 0, draw: drawPlayer });
+  if (exit && view.rise > 0) items.push({ key: 1001, dist: 0, draw: (g) => drawMotes(g, exit.rect) });
   // Above everything, so the tip stays visible against the crate it is pointing at.
   if (view.wand) items.push({ key: 1000, dist: 0, draw: drawWand });
   // Higher things cover lower ones; among equals, nearer the edge goes first.
@@ -722,15 +746,18 @@ function exitPhase(target) {
   const pl = view.player;
   const z0 = view.h[target];
   return {
-    ms: 520,
+    ms: 1700,
     update(t) {
-      const e = easeInOut(t);
-      pl.x = a.x + dir.dc * 1.1 * e;
-      pl.y = a.y + dir.dr * 1.1 * e;
-      pl.base = lerp(z0, 0, Math.min(1, e * 2));
-      pl.z = pl.base + 0.3 * Math.sin(Math.PI * Math.min(1, t * 2));
-      pl.alpha = 1 - Math.max(0, t - 0.45) / 0.55;
-      view.glow = t;
+      // Step onto the square of light at the height you are at, then float up.
+      const walk = easeInOut(Math.min(1, t / 0.32));
+      const rise = easeInOut(Math.max(0, (t - 0.28) / 0.72));
+      pl.x = a.x + dir.dc * walk;
+      pl.y = a.y + dir.dr * walk;
+      pl.base = z0;
+      pl.z = z0 + 3.4 * rise;
+      pl.alpha = 1 - Math.max(0, (rise - 0.45) / 0.55);
+      view.glow = Math.min(1, t * 2);
+      view.rise = rise;
     },
   };
 }
@@ -922,6 +949,7 @@ function syncView() {
   view.ghosts = [];
   view.wand = null;
   view.glow = status === "won" ? 1 : 0;
+  view.rise = 0;
   view.entryClosed = 1;
   view.offset = state.current.offset;
   Object.assign(pl, {

@@ -106,4 +106,5 @@ const CANDIDATES = [
   }
 }
 
-main();
+if (require.main === module) main();
+module.exports = { parseArgs, rate, climb, accept };
