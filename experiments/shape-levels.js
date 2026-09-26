@@ -6,11 +6,12 @@
 //
 //   node experiments/shape-levels.js [--shapes all|name,name] [--restarts 6] [--iterations 600]
 //        [--seed 1] [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 13]
-//        [--min-traps 3] [--max-ways 3] [--out src/candidates.js] [--count 5]
+//        [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--out src/candidates.js] [--count 5]
 //   node experiments/shape-levels.js --merge run1.log run2.log ...   (as make-levels.js)
 //
-// A shape is rows of cells: "." open, "#" wall, "S" the start and "T" the target,
-// each followed by the side of its gate (U, D, L or R), e.g. "SL" or "TU".
+// A shape is rows of cells: "." open, "#" wall, "E" the exit cell (a column of
+// light), "S" the start. (The older "T" target with a gate side, e.g. "TU", and an
+// entry side, e.g. "SL", still work.)
 const fs = require("fs");
 const { parseLevel, solve } = require("../src/engine.js");
 const { mulberry32 } = require("./random-levels.js");
@@ -19,25 +20,25 @@ const { faults, forcedRuns } = require("./tidy.js");
 const { fits, finish } = require("./make-levels.js");
 
 const SHAPES = {
-  // 5 wide, 3 tall, pillars in the middle row at columns 2 and 4; in at the lower left, out at the upper right.
+  // A pure 4x4: in at the lower left, the exit cell in the upper right corner, so it can be reached from either of two cells.
+  square4: [". . . E", ". . . .", ". . . .", "S . . ."],
+  // The older gate-model shapes (T plus a side letter); written out in the exit-cell model by convert.js.
   pillars: [". . . . TU", ". # . # .", "SL . . . ."],
-  // 4x4 with the upper left and lower right corners removed; in at the lower left, out at the upper right.
   diamond: ["# . . TU", ". . . .", ". . . .", "SL . . #"],
-  // 3 wide, 5 tall, the same idea turned upright: pillars in the middle column at rows 2 and 4.
   upright: [". . TU", ". # .", ". . .", ". # .", "SL . ."],
 };
 
 function render(shape, heights) {
   let k = 0;
   return shape
-    .map((row) => row.split(" ").map((token) => (token === "#" ? "#" : `${heights[k++]}${token === "." ? "" : token}`)).join("  "))
+    .map((row) => row.split(" ").map((token) => (token === "#" || token === "E" ? token : `${heights[k++]}${token === "." ? "" : token}`)).join("  "))
     .join("\n");
 }
 
 function parseArgs(argv) {
   const args = {
     shapes: "all", restarts: 6, iterations: 600, seed: 1, minMoves: 24, maxMoves: 44, minPushes: 6, maxPushes: 13,
-    minTraps: 3, maxWays: 3, maxRevisit: 0.55, count: 5, out: "", maxHeight: 5,
+    minTraps: 3, maxWays: 3, maxRevisit: 0.55, count: 5, out: "", maxHeight: 5, maxDecoys: 0, maxUnused: 0,
   };
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i].replace(/^--/, "").replace(/-(\w)/g, (_, ch) => ch.toUpperCase());
@@ -50,7 +51,7 @@ function parseArgs(argv) {
 function baseScore(a, args) {
   return (
     3 * Math.min(a.traps, 8) + 1.5 * a.pushes - 3 * Math.log2(a.ways) - 40 * Math.max(0, a.revisit - args.maxRevisit + 0.05) -
-    1.0 * Math.max(0, args.minMoves - a.length) - 1.0 * Math.max(0, a.length - args.maxMoves) - 40 * (a.unused / a.openCells)
+    1.0 * Math.max(0, args.minMoves - a.length) - 1.0 * Math.max(0, a.length - args.maxMoves) - (args.maxDecoys > 0 ? 15 : 40) * (a.unused / a.openCells)
   );
 }
 
@@ -66,13 +67,13 @@ function evaluate(shape, heights, args, full) {
     const solution = solve(level, { maxStates: 100000 });
     const runs = forcedRuns(level, solution.moves);
     extra = { decoys: f ? f.decoys : 99, runs };
-    score -= 8 * extra.decoys + 3 * (Math.max(0, runs.opening - 1) + Math.max(0, runs.closing - 1));
+    score -= (args.maxDecoys > 0 ? 2 : 8) * extra.decoys + 3 * (Math.max(0, runs.opening - 1) + Math.max(0, runs.closing - 1));
   }
   return { text, a, score, extra };
 }
 
 function anneal(shape, args, rand) {
-  const open = shape.join(" ").split(" ").filter((token) => token !== "#").length;
+  const open = shape.join(" ").split(" ").filter((token) => token !== "#" && token !== "E").length;
   let heights = Array.from({ length: open }, () => Math.floor(rand() * 4));
   let current = null;
   for (let tries = 0; tries < 200 && !current; tries += 1) {
@@ -108,7 +109,7 @@ function anneal(shape, args, rand) {
 }
 
 function qualifies(best, args) {
-  return best && best.extra && best.extra.decoys === 0 && best.extra.runs.opening <= 2 && best.extra.runs.closing <= 2 && fits(best.a, args);
+  return best && best.extra && best.extra.decoys <= args.maxDecoys && best.extra.runs.opening <= 2 && best.extra.runs.closing <= 2 && fits(best.a, args);
 }
 
 function main() {
@@ -133,7 +134,7 @@ function main() {
       const level = parseLevel(item.text);
       const f = faults(item.text);
       const runs = forcedRuns(level, solve(level, { maxStates: 100000 }).moves);
-      return f && f.decoys === 0 && runs.opening <= 2 && runs.closing <= 2;
+      return f && f.decoys <= args.maxDecoys && runs.opening <= 2 && runs.closing <= 2;
     });
     console.log(`${clean.length} clean boards in the window`);
     return finish(clean, args);

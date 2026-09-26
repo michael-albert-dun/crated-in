@@ -16,6 +16,7 @@ const { mulberry32, randomLevel, mutate } = require("./random-levels.js");
 const { analyse } = require("./analyse.js");
 const { rate } = require("./find-levels.js");
 const { tidy, faults, forcedRuns } = require("./tidy.js");
+const { toExitCell } = require("./convert.js");
 
 // Like find-levels' climb, but the score also charges for the faults that tidy()
 // would have to remove afterwards (alcove decoys, a forced opening walk), and
@@ -91,7 +92,7 @@ function parseArgs(argv) {
 
 function fits(a, args) {
   return (
-    a && a.solvable && !a.walkable && a.disconnected === 0 && a.unused === 0 &&
+    a && a.solvable && !a.walkable && a.disconnected === 0 && a.unused <= (args.maxUnused || 0) &&
     a.length >= args.minMoves && a.length <= args.maxMoves && a.pushes >= args.minPushes && a.pushes <= args.maxPushes &&
     a.traps >= args.minTraps && a.ways <= args.maxWays && a.revisit <= args.maxRevisit
   );
@@ -140,7 +141,10 @@ function finish(all, args) {
   }
   const unique = [...new Set(picks)];
   const body = unique
-    .map((c, i) => {
+    .map((c0, i) => {
+      let c = c0;
+      // Written in the exit-cell model (a column of light), whatever the search used.
+      c = { ...c, text: toExitCell(c.text) };
       const level = parseLevel(c.text);
       const solution = solve(level, { maxStates: 400000 }).moves;
       const info = `${level.width}x${level.height}, ${c.a.pushes} pushes, ${c.a.ways} way${c.a.ways === 1 ? "" : "s"}, ${c.a.traps} traps, ${c.a.length} moves`;

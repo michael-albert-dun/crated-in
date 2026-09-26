@@ -1,6 +1,6 @@
-// Levels, in the text format of parseLevel(): "#" wall, a height digit, "S"
-// start and "T" target, each followed by the side of its gap (U, D, L or R):
-// "0SD" is where you enter the room, "0TL" the doorway you step out through.
+// Levels, in the text format of parseLevel(): "#" wall, a height digit, "S" the
+// start, and "E" the exit cell (a column of light set into the room's edge, or
+// just outside it: stepping onto it from any open neighbour wins).
 // "name" is what the play UI shows (plain "Level N" for now, since the levels
 // may get real names); "info" (size and pushes) is only for the test UI.
 // "solution" is the shortest known solution with single-spread pushes (from
@@ -10,22 +10,23 @@ const LEVELS = [
   {
     name: "Level 1",
     info: "3x5, 1 push (hand-made tutorial)",
-    solution: "UUUURRRDDR",
+    solution: "UUUURRRDD",
     text: `
       2  4  1
       2  #  1
-      2  0  0TR
+      2  0  E
       1  #  #
-      0SD #  #`,
+      0S #  #`,
   },
   {
     name: "Level 2",
     info: "4x4, 2 pushes",
     solution: "DRULLUUURU",
     text: `
-      1  1TU 0  0
+      #  E  #  #
+      1  1  0  0
       3  #  5  4
-      2SL 0  1  #
+      2S 0  1  #
       1  1  1  2`,
   },
   {
@@ -33,9 +34,10 @@ const LEVELS = [
     info: "4x4, 3 pushes",
     solution: "UURRRRRRU",
     text: `
-      0  2  2  4TU
+      #  #  #  E
+      0  2  2  4
       1  #  1  #
-      2SL 0  #  #
+      2S 0  #  #
       #  #  #  #`,
   },
   {
@@ -43,9 +45,10 @@ const LEVELS = [
     info: "4x4, 5 pushes",
     solution: "ULLLDLDDRRUULLLLLUU",
     text: `
-      0TU #  #  #
+      E  #  #  #
+      0  #  #  #
       3  2  0  1
-      0  2  #  2SR
+      0  2  #  2S
       #  1  3  3`,
   },
   {
@@ -53,31 +56,32 @@ const LEVELS = [
     info: "5x5, 5 pushes",
     solution: "LLLULDLULLUURRDRRRR",
     text: `
-      #  #  #  #  #
-      3  2  1  0  0
-      0  #  0  0  2TR
-      3  1  #  0  #
-      3  0  1  2SD #`,
+      #  #  #  #  #  #
+      3  2  1  0  0  #
+      0  #  0  0  2  E
+      3  1  #  0  #  #
+      3  0  1  2S #  #`,
   },
   {
     name: "Level 6",
     info: "5x5, 6 pushes",
-    solution: "UUUUULDRRDLURDRLLDDRDDL",
+    solution: "UUUUULDRRDLURDRLLDDRDDD",
     text: `
       #  #  #  0  1
       #  2  3  0  1
       #  1  #  #  4
       #  1  1  #  1
-      #  #  3TL #  0SR`,
+      #  #  3  #  0S
+      #  #  E  #  #`,
   },
   {
     name: "Level 7",
     info: "5x5, 6 pushes",
     solution: "DLLDLLUULLDDRUUULLLURURR",
     text: `
-      2  0TR #  #  #
+      2  0  E  #  #
       1  2  #  #  #
-      0  4  1  #  0SR
+      0  4  1  #  0S
       #  1  2  0  1
       #  4  0  2  2`,
   },
@@ -86,87 +90,90 @@ const LEVELS = [
     info: "5x5, 10 pushes",
     solution: "LLURDLDDLUULDRRRRULLUURRRUURRRDDDDR",
     text: `
-      2  5  0  3  0
-      1  #  0  #  0
-      2  0  2  #  5TR
-      0  3  1  0  #
-      0  0  2  3  3SD`,
+      2  5  0  3  0  #
+      1  #  0  #  0  #
+      2  0  2  #  5  E
+      0  3  1  0  #  #
+      0  0  2  3  3S #`,
   },
   {
     name: "Level 9",
     info: "5x5, 7 pushes",
     solution: "DLLLUUULLLDDDRRRUUUUULDDDDLLUUUURRRRDRUU",
     text: `
-      0  3  2  0TU #
+      #  #  #  E  #
+      0  3  2  0  #
       1  4  1  2  #
       1  #  2  #  #
-      1  #  3  #  0SL
+      1  #  3  #  0S
       1  0  1  4  1`,
   },
   {
     name: "Level 10",
     info: "5x5, 20 pushes",
-    solution: "URRUUUDLURULDRUUUDLUURURUURRULDRDLLLDRULDRDLUURURULLUR",
+    solution: "URRUUUDLURULDRUUUDLUURURUURRULDRDLLLDRULDRDLUURURULLUU",
     text: `
-      #  #  #  0TR #
+      #  #  #  E  #
+      #  #  #  0  #
       0  4  1  2  0
       4  3  0  3  2
       1  3  #  0  2
-      2SD 1  #  #  #`,
+      2S 1  #  #  #`,
   },
   {
     name: "Level 11",
     info: "6x6, 10 pushes",
     solution: "UUURURDRDDDDDDRRRURRULUUUUR",
     text: `
-      2  1  4  #  #  #
-      5  0  0  1  #  5TR
-      1SL #  1  1  #  3
-      #  #  0  #  0  5
-      #  #  5  4  0  1
-      #  #  0  1  5  0`,
+      2  1  4  #  #  #  #
+      5  0  0  1  #  5  E
+      1S #  1  1  #  3  #
+      #  #  0  #  0  5  #
+      #  #  5  4  0  1  #
+      #  #  0  1  5  0  #`,
   },
   {
     name: "Level 12",
     info: "6x5, 12 pushes",
     solution: "URUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
-      5  2  #  #  5TU #
+      #  #  #  #  E  #
+      5  2  #  #  5  #
       0  2  #  #  0  4
       0  3  #  #  1  1
       2  2  0  3  4  #
-      1SL #  3  0  0  #`,
+      1S #  3  0  0  #`,
   },
   {
     name: "Level 13",
     info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
-      2  2  1  2  0SU
-      #  0  2  5  #
-      5  0  #  #  0TR
-      0  3  3  0  5
-      0  1  3  0  #`,
+      2  2  1  2  0S #
+      #  0  2  5  #  #
+      5  0  #  #  0  E
+      0  3  3  0  5  #
+      0  1  3  0  #  #`,
   },
   {
     name: "Level 14",
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
-      #  #  0  1  1
-      0TL 1  3  2  2
-      #  3  1  #  #
-      2  2  0  #  #
-      0SD #  #  #  #`,
+      #  #  #  0  1  1
+      E  0  1  3  2  2
+      #  #  3  1  #  #
+      #  2  2  0  #  #
+      #  0S #  #  #  #`,
   },
   {
     name: "Level 15",
     info: "5x4, 18 pushes",
-    solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRU",
+    solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRR",
     text: `
-      #  1  2  3  4SR
-      #  2  3  0  #
-      #  4  #  1  0TU
-      #  0  1  4  5`,
+      #  1  2  3  4S #
+      #  2  3  0  #  #
+      #  4  #  1  0  E
+      #  0  1  4  5  #`,
   },
 ];

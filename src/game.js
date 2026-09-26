@@ -59,7 +59,8 @@ const view = {
   wand: null, // during a push: { d, reach, swing, glow, alpha, burst, trail }, see drawWand
   glow: 0,
   rise: 0, // while floating up the exit column: 0..1
-  entryClosed: 1, // 0 = entry doorway open, 1 = door shut
+  beam: 0, // the column of light you arrive in: 0 (none) .. 1
+  beamRise: 0, // 0..1 while you rise up it, for the motes of light
   // Reflooring shifts every height down together, which changes no rule (they all
   // depend on height differences), so the numbers just keep counting up: `offset`
   // is the number of layers removed so far, added back for display.
@@ -140,39 +141,14 @@ function cellCentre(i) {
   return { x: (i % width) + 0.5, y: Math.floor(i / width) + 0.5 };
 }
 
-// A gate is a doorway next to a cell: the exit beside the target cell, and the
-// entry you arrive through beside the start cell. It is on the side of the cell
-// facing the outer wall, or a wall cell connected to it. If that faces off the
-// board the doorway is a gap in the thin boundary wall, otherwise it is that
-// wall cell (a tunnel), drawn as an alcove in the half of that cell nearest the
-// gate's own cell, with the far half left as stone, so it doesn't look like a
-// way through to whatever is on the other side of the wall cell. Returns its
-// scene rectangle (and, for a tunnel, the stone half), or null for levels
-// without a gate side. With `full` (the exit) the rectangle is a whole square
-// instead, and there is no stone half: see drawLightColumn.
-function gateInfo(cell, dir, full = false) {
-  const { width, height } = state.level;
-  if (dir < 0) return null;
-  const col = (cell % width) + DIRS[dir].dc;
-  const row = Math.floor(cell / width) + DIRS[dir].dr;
-  const onBoard = row >= 0 && row < height && col >= 0 && col < width;
-  let rect;
-  let farRect = null;
-  if (onBoard) {
-    const [x0, y0, x1, y1] = [cellX(col), cellY(row), cellX(col + 1), cellY(row + 1)];
-    const { dr, dc } = DIRS[dir];
-    // dc > 0 means the gate cell is to the right of its own cell, so the near
-    // half is the left one, and so on.
-    if (full) rect = [x0, y0, x1, y1];
-    else if (dc > 0) [rect, farRect] = [[x0, y0, x0 + CELL / 2, y1], [x0 + CELL / 2, y0, x1, y1]];
-    else if (dc < 0) [rect, farRect] = [[x0 + CELL / 2, y0, x1, y1], [x0, y0, x0 + CELL / 2, y1]];
-    else if (dr > 0) [rect, farRect] = [[x0, y0, x1, y0 + CELL / 2], [x0, y0 + CELL / 2, x1, y1]];
-    else [rect, farRect] = [[x0, y0 + CELL / 2, x1, y1], [x0, y0, x1, y0 + CELL / 2]];
-  } else if (col < 0) rect = [full ? -PAD : 0, cellY(row), PAD, cellY(row + 1)];
-  else if (col >= width) rect = [cellX(width), cellY(row), cellX(width) + (full ? CELL : PAD), cellY(row + 1)];
-  else if (row < 0) rect = [cellX(col), full ? -PAD : 0, cellX(col + 1), PAD];
-  else rect = [cellX(col), cellY(height), cellX(col + 1), cellY(height) + (full ? CELL : PAD)];
-  return { row, col, onBoard, rect, farRect, dir };
+// The exit cell's square in scene coordinates, or null (older levels have a
+// target cell and no exit cell).
+function exitRect() {
+  const { exit, width } = state.level;
+  if (exit < 0) return null;
+  const X0 = cellX(exit % width);
+  const Y0 = cellY(Math.floor(exit / width));
+  return [X0, Y0, X0 + CELL, Y0 + CELL];
 }
 
 // The grey material around the room. "Outside" is anything off the board or a
@@ -180,37 +156,24 @@ function gateInfo(cell, dir, full = false) {
 // backdrop, and every open cell next to it gets a half-width grey edge on each
 // such side, plus a half-by-half block on each corner where both neighbours and
 // the diagonal one are outside, so the silhouette has no notches (with an
-// open neighbour, its own edge already covers that corner). A tunnel's cell counts as open
-// (its near half is the doorway, its far half solid grey) and only takes edges
-// along its sides. Gaps are left where the gates are.
-function boundaryRects(gates, outer) {
-  const { width: W, height: H, wall } = state.level;
-  const tunnels = gates.filter((gate) => gate.onBoard);
-  const tunnelAt = (r, c) => tunnels.find((gate) => gate.row === r && gate.col === c);
-  const isTunnel = (r, c) => !!tunnelAt(r, c);
+// open neighbour, its own edge already covers that corner). The exit cell counts
+// as open, so it is framed like any other cell.
+function boundaryRects(outer) {
+  const { width: W, height: H, wall, exit } = state.level;
   const inside = (r, c) => r >= 0 && r < H && c >= 0 && c < W;
-  const outside = (r, c) => !inside(r, c) || (wall[r * W + c] && outer[r * W + c] && !isTunnel(r, c));
-  // The sides of cells that face off the board through a gate: left as gaps.
-  const gaps = [[state.level.target, state.level.exitDir], [state.level.start, state.level.startDir]]
-    .filter(([, dir]) => dir >= 0)
-    .map(([cell, dir]) => [Math.floor(cell / W), cell % W, dir]);
-  const isGap = (r, c, d) => gaps.some(([gr, gc, gd]) => gr === r && gc === c && gd === d);
-  const rects = tunnels.map((gate) => gate.farRect).filter(Boolean);
+  const outside = (r, c) => !inside(r, c) || Boolean(wall[r * W + c] && outer[r * W + c] && r * W + c !== exit);
+  const rects = [];
   for (let r = 0; r < H; r += 1) {
     for (let c = 0; c < W; c += 1) {
-      const tunnel = tunnelAt(r, c);
-      if (!tunnel && outside(r, c)) continue;
+      if (outside(r, c)) continue;
       const [x0, y0, x1, y1] = [cellX(c), cellY(r), cellX(c + 1), cellY(r + 1)];
-      DIRS.forEach((dir, d) => {
-        if (!outside(r + dir.dr, c + dir.dc) || isGap(r, c, d)) return;
-        // Along the tunnel's axis lies the doorway (near) and the solid far half.
-        if (tunnel && (dir.dr !== 0) === (DIRS[tunnel.dir].dr !== 0)) return;
+      for (const dir of DIRS) {
+        if (!outside(r + dir.dr, c + dir.dc)) continue;
         if (dir.dr < 0) rects.push([x0, y0 - PAD, x1, y0]);
         else if (dir.dr > 0) rects.push([x0, y1, x1, y1 + PAD]);
         else if (dir.dc < 0) rects.push([x0 - PAD, y0, x0, y1]);
         else rects.push([x1, y0, x1 + PAD, y1]);
-      });
-      if (tunnel) continue;
+      }
       for (const dr of [-1, 1]) {
         for (const dc of [-1, 1]) {
           if (!outside(r + dr, c + dc) || !outside(r + dr, c) || !outside(r, c + dc)) continue;
@@ -374,35 +337,13 @@ function drawPillar(g, X0, Y0) {
   poly(g, star, PILLAR.star, "#7b808a", 1);
 }
 
-// The entry: a cool daylight-blue doorway with chevrons pointing in, where you
-// came from.
-function drawPassage(g, [X0, Y0, X1, Y1], dirIndex) {
-  const dir = DIRS[dirIndex];
-  const w = X1 - X0;
-  const h = Y1 - Y0;
-  const along = dir.dc !== 0 ? w : h;
-  const outward = (Math.atan2(dir.dr, dir.dc) * 180) / Math.PI;
-  const centre = `translate(${X0 + w / 2} ${Y0 + h / 2})`;
-  const lit = 0.7 * (1 - view.entryClosed);
-  // Light spilling out beyond the doorway (hidden by the walls for a tunnel).
-  const beam = svgEl("g", { transform: `${centre} rotate(${outward})`, opacity: lit }, g);
-  svgEl("rect", { x: along / 2, y: -CELL / 2, width: CELL * 1.6, height: CELL, fill: "url(#beam-entry)" }, beam);
-  svgEl("rect", { x: X0, y: Y0, width: w, height: h, fill: "#d6e4f4" }, g);
-  svgEl("rect", { x: X0, y: Y0, width: w, height: h, fill: "url(#glow-entry)", opacity: 0.7 }, g);
-  // Chevrons (just one in the thin doorway of the boundary wall).
-  const chevrons = svgEl("g", { transform: `${centre} rotate(${outward + 180})` }, g);
-  for (const off of along >= CELL * 0.8 ? [-11, 5] : [-1]) {
-    svgEl("polyline", { points: `${off - 7},-11 ${off + 5},0 ${off - 7},11`, fill: "none", stroke: "#4a6a94", "stroke-width": 5, "stroke-linecap": "round", "stroke-linejoin": "round" }, chevrons);
-  }
-}
-
 // The exit: a full square of light. A doorway at floor level read as a fixed
 // height, so leaving from a tall crate looked like a drop; a column of light has
 // no height, and stepping onto it floats you up and away at whatever height you
 // were. Seen from above it is nested squares narrowing to a bright middle, as if
 // looking up a shaft. `view.glow` brightens it while you leave.
-function drawLightColumn(g, [X0, Y0]) {
-  const lit = 0.6 + 0.2 * view.glow;
+function drawLightColumn(g, [X0, Y0], strength = 0.6 + 0.2 * view.glow) {
+  const lit = strength;
   svgEl("rect", { x: X0, y: Y0, width: CELL, height: CELL, fill: "#ecca7c" }, g);
   svgEl("rect", { x: X0, y: Y0, width: CELL, height: CELL, fill: "url(#glow)", opacity: lit }, g);
   for (const [inset, alpha] of [[0.1, 0.18], [0.22, 0.3], [0.34, 0.5]]) {
@@ -412,25 +353,24 @@ function drawLightColumn(g, [X0, Y0]) {
   svgEl("rect", { x: X0 + 1, y: Y0 + 1, width: CELL - 2, height: CELL - 2, fill: "none", stroke: "rgba(201, 138, 0, 0.55)", "stroke-width": 2 }, g);
 }
 
-// Motes of light streaming up the column while you float away (`view.rise`, 0..1).
-function drawMotes(g, [X0, Y0]) {
+// Motes of light streaming up a column while you float in or out (`progress`, 0..1).
+function drawMotes(g, [X0, Y0], progress) {
   for (let k = 0; k < 9; k += 1) {
-    const phase = (view.rise * 1.6 + k / 9) % 1;
+    const phase = (progress * 1.6 + k / 9) % 1;
     const x = X0 + CELL * (0.18 + 0.64 * ((k * 0.618) % 1));
     const y = Y0 + CELL * (0.85 - 0.8 * phase);
     drawSparkle(g, x, y, 3 + 2.5 * Math.sin(Math.PI * phase), Math.sin(Math.PI * phase));
   }
 }
 
-// The two leaves of the entry door, sliding in from either side of the doorway
-// until they meet. `closed` is 0 (open, nothing drawn) to 1 (shut).
-function doorLeaves([X0, Y0, X1, Y1], dirIndex, closed) {
-  const acrossY = DIRS[dirIndex].dc !== 0; // a doorway in a left/right wall closes vertically
-  const length = acrossY ? Y1 - Y0 : X1 - X0;
-  const reach = (length / 2) * closed;
-  return acrossY
-    ? [[X0, Y0, X1, Y0 + reach], [X0, Y1 - reach, X1, Y1]]
-    : [[X0, Y0, X0 + reach, Y1], [X1 - reach, Y0, X1, Y1]];
+// The arrival: the same column of light, lit over the start cell while you rise
+// up it from below; it fades away once you are in place (`view.beam`).
+function drawEntryColumn(g) {
+  const { start, width } = state.level;
+  const X0 = cellX(start % width);
+  const Y0 = cellY(Math.floor(start / width));
+  const group = svgEl("g", { opacity: view.beam }, g);
+  drawLightColumn(group, [X0, Y0, X0 + CELL, Y0 + CELL], 0.7);
 }
 
 // A crate in flight. `lift` is how far it is above where it will land: without
@@ -563,14 +503,6 @@ function render() {
   const glow = svgEl("radialGradient", { id: "glow" }, defs);
   svgEl("stop", { offset: "0%", "stop-color": "#ffffff", "stop-opacity": 0.95 }, glow);
   svgEl("stop", { offset: "100%", "stop-color": "#ffdf80", "stop-opacity": 0 }, glow);
-  const glowEntry = svgEl("radialGradient", { id: "glow-entry" }, defs);
-  svgEl("stop", { offset: "0%", "stop-color": "#ffffff", "stop-opacity": 0.9 }, glowEntry);
-  svgEl("stop", { offset: "100%", "stop-color": "#b9d2f0", "stop-opacity": 0 }, glowEntry);
-  const beamEntry = svgEl("linearGradient", { id: "beam-entry", x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
-  svgEl("stop", { offset: "0%", "stop-color": "#cfe2ff", "stop-opacity": 0.6 }, beamEntry);
-  svgEl("stop", { offset: "100%", "stop-color": "#cfe2ff", "stop-opacity": 0 }, beamEntry);
-
-  const outer = outerWalls(level.width, level.height, level.wall);
   // Fine grain for the grey walls: sparse, faint speckles. Grey fractal noise is
   // flattened to neutral through its middle range so that only the rarer extremes
   // deviate, then blended over the fill (overlay: 0.5 = no change) and clipped to it.
@@ -583,27 +515,20 @@ function render() {
   }
   svgEl("feBlend", { in: "SourceGraphic", in2: "speckle", mode: "overlay", result: "mixed" }, noise);
   svgEl("feComposite", { in: "mixed", in2: "SourceGraphic", operator: "in" }, noise);
+  const outer = outerWalls(level.width, level.height, level.wall);
   const floor = svgEl("g", {}, svg);
   const scene = svgEl("g", {}, svg);
-  const exit = gateInfo(level.target, level.exitDir, true);
-  const entry = gateInfo(level.start, level.startDir);
-  const gates = [exit, entry].filter(Boolean);
+  const exit = exitRect();
   const items = [];
   const distance2 = (x, y) => (x - geo.cx) ** 2 + (y - geo.cy) ** 2;
 
-  if (exit) drawLightColumn(floor, exit.rect);
-  // Once shut, the entry is plain wall: drawing the doorway under it would leak a pale edge.
-  if (entry && view.entryClosed < 0.999) drawPassage(floor, entry.rect, level.startDir);
+  if (exit) drawLightColumn(floor, exit);
   for (let br = 0; br < level.height; br += 1) {
     for (let bc = 0; bc < level.width; bc += 1) {
       const i = br * level.width + bc;
-      const tunnel = gates.find((gate) => gate.onBoard && gate.row === br && gate.col === bc);
-      if (tunnel) {
-        continue;
-      }
       const [X0, Y0] = [cellX(bc), cellY(br)];
       if (level.wall[i]) {
-        if (outer[i]) continue; // outside: the grey edges are drawn from the open cells (boundaryRects)
+        if (i === level.exit || outer[i]) continue; // the exit is drawn separately; outside: the grey edges come from the open cells (boundaryRects)
         svgEl("rect", { x: X0, y: Y0, width: CELL, height: CELL, fill: VOID_FILL }, floor);
         items.push({ key: WALL_LAYERS + 1, dist: distance2(X0 + CELL / 2, Y0 + CELL / 2), draw: (g) => drawPillar(g, X0, Y0) });
         continue;
@@ -618,16 +543,19 @@ function render() {
       }
     }
   }
-  const greys = boundaryRects(gates, outer);
-  // The entry door slides shut as two leaves of the same grey, so once closed it is just wall.
-  if (entry && view.entryClosed > 0.001) greys.push(...doorLeaves(entry.rect, level.startDir, view.entryClosed));
+  const greys = boundaryRects(outer);
   if (greys.length) items.push({ key: WALL_LAYERS + 1, dist: 0, draw: (g) => drawWall(g, greys) });
   for (const ghost of view.ghosts) {
     // The copy that slides in under the player is drawn beneath them.
     items.push({ key: ghost.under ? view.player.z + 0.4 : ghost.z + 1, dist: 0, draw: (g) => drawGhost(g, ghost) });
   }
-  items.push({ key: view.player.z + 0.5, dist: 0, draw: drawPlayer });
-  if (exit && view.rise > 0) items.push({ key: 1001, dist: 0, draw: (g) => drawMotes(g, exit.rect) });
+  items.push({ key: view.beam > 0 ? 1003 : view.player.z + 0.5, dist: 0, draw: drawPlayer });
+  if (exit && view.rise > 0) items.push({ key: 1001, dist: 0, draw: (g) => drawMotes(g, exit, view.rise) });
+  if (view.beam > 0) {
+    const [sx, sy] = [cellX(level.start % level.width), cellY(Math.floor(level.start / level.width))];
+    items.push({ key: 1002, dist: 0, draw: drawEntryColumn });
+    items.push({ key: 1004, dist: 0, draw: (g) => drawMotes(g, [sx, sy], view.beamRise) });
+  }
   // Above everything, so the tip stays visible against the crate it is pointing at.
   if (view.wand) items.push({ key: 1000, dist: 0, draw: drawWand });
   // Higher things cover lower ones; among equals, nearer the edge goes first.
@@ -653,12 +581,7 @@ function render() {
       }
       addTapPad(svg, [X0, Y0, X0 + CELL, Y0 + CELL], view.h[n], d);
     });
-    if (exit && pos === level.target) {
-      const X0 = cellX(pos % level.width);
-      const Y0 = cellY(Math.floor(pos / level.width));
-      addTapPad(svg, exit.rect, 0, level.exitDir);
-      addTapPad(svg, [X0, Y0, X0 + CELL, Y0 + CELL], view.h[pos], level.exitDir);
-    }
+    if (exit && level.exitStep[pos] >= 0) addTapPad(svg, exit, 0, level.exitStep[pos]);
   }
 }
 
@@ -738,17 +661,16 @@ function walkPhase(from, to) {
   };
 }
 
-// Stepping out: from the target cell through the doorway, down to floor level
-// (whatever height you were standing at), fading into the light.
-function exitPhase(target) {
-  const a = cellCentre(target);
-  const dir = DIRS[state.level.exitDir];
+// Stepping out: from the cell next to the exit onto its square of light, at the
+// height you are standing at, then floating up and away.
+function exitPhase(from, d) {
+  const a = cellCentre(from);
+  const dir = DIRS[d];
   const pl = view.player;
-  const z0 = view.h[target];
+  const z0 = view.h[from];
   return {
     ms: 1700,
     update(t) {
-      // Step onto the square of light at the height you are at, then float up.
       const walk = easeInOut(Math.min(1, t / 0.32));
       const rise = easeInOut(Math.max(0, (t - 0.28) / 0.72));
       pl.x = a.x + dir.dc * walk;
@@ -762,56 +684,42 @@ function exitPhase(target) {
   };
 }
 
-// Arriving: the mirror of stepping out. You walk in from the entry doorway onto
-// the start cell, rising from floor level to whatever height it is.
+// Arriving: the mirror of stepping out. A column of light comes on over the start
+// cell, you rise up it from below to the height of the crate, and the light fades.
 function entryPhase() {
   const { level } = state;
   const c = cellCentre(level.start);
-  const dir = DIRS[level.startDir];
   const pl = view.player;
   const z1 = view.h[level.start];
+  const facing = readyFacing();
   return {
-    ms: 780,
+    ms: 1500,
     update(t) {
-      const e = easeInOut(t);
-      const back = 1 - t;
-      view.entryClosed = 0;
-      pl.facing = level.startDir ^ 1; // directions come in opposite pairs
-      pl.x = c.x + dir.dc * 1.1 * (1 - e);
-      pl.y = c.y + dir.dr * 1.1 * (1 - e);
-      pl.base = lerp(z1, 0, Math.min(1, back * 2));
-      pl.z = pl.base + 0.3 * Math.sin(Math.PI * Math.min(1, back * 2));
-      pl.alpha = Math.min(1, t / 0.55);
+      const up = easeOut(Math.max(0, Math.min(1, (t - 0.2) / 0.55)));
+      view.beam = t >= 1 ? 0 : easeOut(Math.min(1, t / 0.25)) * (1 - easeInOut(Math.max(0, (t - 0.68) / 0.32)));
+      view.beamRise = t;
+      pl.facing = facing;
+      pl.x = c.x;
+      pl.y = c.y;
+      pl.base = z1;
+      pl.z = z1 - 2.6 * (1 - up);
+      pl.alpha = Math.max(0, Math.min(1, (t - 0.12) / 0.3));
     },
   };
 }
 
-// Which way the figure should face when it is your turn: inward if you can walk
-// that way, else any way you can walk, else any way you can push. (A drop, or a
+// Which way the figure should face when it is your turn: any way you can walk,
+// else any way you can push. (A drop, or a
 // wall, is not a way you can move.)
 function readyFacing() {
   const { level } = state;
-  const inward = level.startDir >= 0 ? level.startDir ^ 1 : 1;
-  const order = [inward, 0, 1, 2, 3];
+  const order = [0, 1, 2, 3];
   for (const wanted of ["walked", "pushed"]) {
     for (const d of order) {
       if (step(level, state.current.game, d, { soft: true }).result === wanted) return d;
     }
   }
-  return inward;
-}
-
-// Once you're in, the entry door slides shut behind you (after a beat), and you
-// turn to face a way you can go.
-function closeDoorPhase() {
-  const rest = readyFacing();
-  return {
-    ms: 700,
-    update(t) {
-      view.player.facing = rest;
-      view.entryClosed = easeInOut(Math.max(0, (t - 0.2) / 0.8));
-    },
-  };
+  return 1;
 }
 
 function fallPhases(from, to, d) {
@@ -950,7 +858,8 @@ function syncView() {
   view.wand = null;
   view.glow = status === "won" ? 1 : 0;
   view.rise = 0;
-  view.entryClosed = 1;
+  view.beam = 0;
+  view.beamRise = 0;
   view.offset = state.current.offset;
   Object.assign(pl, {
     x: c.x, y: c.y, base: game.h[game.pos], z: game.h[game.pos],
@@ -986,11 +895,11 @@ function restart() {
 }
 
 function playEntry() {
-  if (state.level.startDir < 0 || REDUCED_MOTION) return;
+  if (REDUCED_MOTION) return;
   const phase = entryPhase();
   phase.update(0);
   render();
-  runPhases([phase, closeDoorPhase()]);
+  runPhases([phase]);
 }
 
 function undo() {
@@ -1029,7 +938,7 @@ function move(d) {
   } else if (out.result === "won") {
     next.status = "won";
     next.message = state.levelIndex + 1 < LEVELS.length ? "" : "That was the last level.";
-    phases = level.exitDir >= 0 ? [exitPhase(from)] : [walkPhase(from, to), exitPhase(to)];
+    phases = level.exit >= 0 ? [exitPhase(from, d)] : [walkPhase(from, to)];
     state.solved.add(state.levelIndex);
     saveStorage();
   } else if (out.result === "died") {

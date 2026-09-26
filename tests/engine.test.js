@@ -164,3 +164,44 @@ test("the entry gate has no effect on play", () => {
   const plain = parseLevel("0S 0 0TR");
   assert.strictEqual(solve(level).moves, solve(plain).moves);
 });
+
+test("an exit cell (E) is won by stepping onto it from any open neighbour, at any height", () => {
+  const level = parseLevel("5S E 0\n0 0 0");
+  const state = createState(level);
+  // A drop of 5 would be fatal onto a crate, but the exit is a column of light.
+  assert.strictEqual(step(level, state, R).result, "won");
+  const below = { h: state.h, pos: 4 }; // the cell under E
+  assert.strictEqual(step(level, below, U).result, "won");
+  const right = { h: state.h, pos: 2 };
+  assert.strictEqual(step(level, right, L).result, "won");
+  // Not from a cell that doesn't touch it.
+  assert.strictEqual(step(level, { h: state.h, pos: 3 }, R).result, "walked");
+});
+
+test("the exit cell is inert: it takes no copies and is not part of reflooring", () => {
+  const level = parseLevel("0S 3 E\n1 1 1");
+  assert.ok(level.wall[2]);
+  const out = step(level, createState(level), R);
+  assert.strictEqual(out.result, "pushed");
+  // Pile 3 -> 2; its open neighbours (0,0) and (1,1) gain 1; E gains nothing. Every
+  // open cell is then at least 1, so the floor drops a layer even though E is at 0.
+  assert.deepStrictEqual(heights(out.state), [0, 1, 0, 0, 1, 0]);
+  assert.strictEqual(out.reflooded, 1);
+  assert.strictEqual(level.nbrs[1][R], -1);
+});
+
+test("the solver finds the shortest way to any neighbour of the exit cell", () => {
+  const level = parseLevel("0S 0 E\n0 0 0");
+  assert.strictEqual(solve(level).moves, "RR");
+  const two = parseLevel("0S 3 E\n0 0 0");
+  // Around the pile (D R R U) is 4 moves; pushing it (R R R) is 3.
+  assert.strictEqual(solve(two).moves.length, 3);
+});
+
+test("a level has either a target or an exit cell, and the exit needs a way in", () => {
+  assert.throws(() => parseLevel("0S 0T E"), /both a T and an E/);
+  assert.throws(() => parseLevel("0S # #\n# E #"), /no open neighbour/);
+  assert.throws(() => parseLevel("0S E E"), /more than one exit/);
+  const level = parseLevel("0S E");
+  assert.strictEqual(formatLevel(level).trim(), "0S E");
+});

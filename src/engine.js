@@ -28,6 +28,7 @@ function parseLevel(text) {
   const heights = new Int16Array(width * height);
   let start = -1;
   let target = -1;
+  let exit = -1;
   let exitDir = -1;
   let startDir = -1;
   rows.forEach((row, r) => {
@@ -36,6 +37,12 @@ function parseLevel(text) {
       const i = r * width + c;
       if (token === "#") {
         wall[i] = 1;
+        return;
+      }
+      if (token === "E") {
+        if (exit >= 0) throw new Error("Level has more than one exit cell");
+        exit = i;
+        wall[i] = 1; // inert like a wall as far as walking and spreading go
         return;
       }
       const match = /^(\d+)(?:S([UDLR])?|T([UDLR])?)?$/.exec(token);
@@ -53,8 +60,11 @@ function parseLevel(text) {
       }
     });
   });
-  if (start < 0 || target < 0) throw new Error("Level needs an S and a T");
-  const level = makeLevel(width, height, wall, heights, start, target, exitDir, startDir);
+  if (start < 0 || (target < 0 && exit < 0)) throw new Error("Level needs an S and a T or an E");
+  if (target >= 0 && exit >= 0) throw new Error("Level has both a T and an E");
+  const level = makeLevel(width, height, wall, heights, start, target, exitDir, startDir, exit);
+  if (exit >= 0 && !level.exitStep.some((d) => d >= 0)) throw new Error("Exit cell has no open neighbour");
+  if (exit >= 0 && startDir >= 0 && gateIndex(width, start, startDir) === exit) throw new Error("Entry and exit are the same gap");
   if (exitDir >= 0 && !isValidExit(width, height, wall, target, exitDir)) {
     throw new Error("Exit gap is not on the outside wall or a wall connected to it");
   }
@@ -110,6 +120,13 @@ function isValidExit(width, height, wall, target, dir, outer = outerWalls(width,
   return Boolean(outer[r * width + c]);
 }
 
+// The cell index a gate on `cell` in direction `dir` opens onto, or -1 off the board.
+function gateIndex(width, cell, dir) {
+  const r = Math.floor(cell / width) + DIRS[dir].dr;
+  const c = (cell % width) + DIRS[dir].dc;
+  return c < 0 || c >= width || r < 0 ? -1 : r * width + c;
+}
+
 // Identifies the gap a gate opens onto, so two gates can be told apart.
 function gateKey(width, cell, dir) {
   return `${Math.floor(cell / width) + DIRS[dir].dr},${(cell % width) + DIRS[dir].dc}`;
@@ -121,7 +138,7 @@ function exitDirs(width, height, wall, target, outer = outerWalls(width, height,
   return DIRS.map((_, d) => d).filter((d) => isValidExit(width, height, wall, target, d, outer));
 }
 
-function makeLevel(width, height, wall, heights, start, target, exitDir = -1, startDir = -1) {
+function makeLevel(width, height, wall, heights, start, target, exitDir = -1, startDir = -1, exit = -1) {
   // nbrs[i][d] is the cell index in direction d, or -1 if that is off the
   // board or a wall. Both cases behave identically: you can't move there and
   // spreading doesn't put anything there.
@@ -138,7 +155,21 @@ function makeLevel(width, height, wall, heights, start, target, exitDir = -1, st
       }),
     );
   }
-  return { width, height, wall, initialHeights: heights, start, target, exitDir, startDir, nbrs };
+  // exitStep[i] is the direction from open cell i onto the exit cell (an "E"), or
+  // -1: stepping that way wins.
+  const exitStep = new Int8Array(width * height).fill(-1);
+  if (exit >= 0) {
+    const r = Math.floor(exit / width);
+    const c = exit % width;
+    DIRS.forEach(({ dr, dc }, d) => {
+      const rr = r - dr;
+      const cc = c - dc;
+      if (rr < 0 || rr >= height || cc < 0 || cc >= width) return;
+      const cell = rr * width + cc;
+      if (!wall[cell]) exitStep[cell] = d;
+    });
+  }
+  return { width, height, wall, initialHeights: heights, start, target, exitDir, startDir, nbrs, exit, exitStep };
 }
 
 function formatLevel(level, state = createState(level)) {
@@ -147,6 +178,10 @@ function formatLevel(level, state = createState(level)) {
     const cells = [];
     for (let c = 0; c < level.width; c += 1) {
       const i = r * level.width + c;
+      if (i === level.exit) {
+        cells.push("E ");
+        continue;
+      }
       if (level.wall[i]) {
         cells.push("# ");
         continue;
@@ -211,6 +246,7 @@ function spread(level, h, at) {
 function step(level, state, d, opts = {}) {
   const from = state.pos;
   if (from === level.target && d === level.exitDir) return { state, result: "won" };
+  if (level.exitStep[from] === d) return { state, result: "won" };
   const to = level.nbrs[from][d];
   if (to < 0) return { state, result: "blocked" };
   const gap = state.h[to] - state.h[from];
@@ -293,5 +329,5 @@ function solve(level, opts = {}) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, formatLevel, createState, reflood, step, solve };
+  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, gateIndex, formatLevel, createState, reflood, step, solve };
 }

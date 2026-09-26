@@ -259,9 +259,10 @@ function faults(text, { maxStates = 20000 } = {}) {
   const base = solve(level, { maxStates });
   if (base.status !== "solved") return null;
   let decoys = 0;
+  let tempting = 0;
   for (let r = 0; r < rows.length; r += 1) {
     for (let c = 0; c < rows[0].length; c += 1) {
-      if (/^#|[ST]/.test(rows[r][c])) continue;
+      if (/^#|^E|[ST]/.test(rows[r][c])) continue;
       const test = rows.map((row) => row.slice());
       test[r][c] = "#";
       let walled;
@@ -271,11 +272,28 @@ function faults(text, { maxStates = 20000 } = {}) {
         continue;
       }
       const result = solve(walled, { maxStates });
-      if (result.status === "solved" && result.moves.length === base.moves.length) decoys += 1;
+      if (!(result.status === "solved" && result.moves.length === base.moves.length)) continue;
+      // Removable. But an alcove can be a feature: if the exit were moved onto it
+      // the puzzle would collapse (it is a tempting near-miss that blocks the direct
+      // way), so it earns its place. Only meaningful in the exit-cell model.
+      if (level.exit >= 0) {
+        const moved = rows.map((row) => row.map((token) => (token === "E" ? "#" : token)));
+        moved[r][c] = "E";
+        try {
+          const there = solve(parseLevel(moved.map((row) => row.join(" ")).join("\n")), { maxStates });
+          if (there.status === "solved" && there.moves.length <= base.moves.length / 2) {
+            tempting += 1;
+            continue;
+          }
+        } catch (error) {
+          // Not a valid exit spot; count it as a plain decoy.
+        }
+      }
+      decoys += 1;
     }
   }
   const opening = forcedOpening(level, base.moves);
-  return { decoys, openingMoves: opening ? opening.moves : 0 };
+  return { decoys, tempting, openingMoves: opening ? opening.moves : 0 };
 }
 
 module.exports = { tidy, faults, forcedOpening, forcedRuns };

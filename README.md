@@ -40,15 +40,15 @@ on that side, plus a half-by-half block on corners where both neighbours and the
 diagonal are outside, so rooms need not look square and the silhouette has no
 notches. A free-standing wall cell is instead a dark grey octagonal pillar (black
 inset, light eight-pointed star) on a sky-blue void tile, so it can't be
-mistaken for floor. The exit is a full square of light (nested glowing squares, seen from above
-like a shaft of light), either just off the edge of the board or filling a tunnel
-cell of wall connected to it. It is a column rather than a doorway because a
-doorway at floor level read as a fixed height, so leaving from a tall crate
-looked like a drop: stepping onto the column keeps you at your height and floats
-you up and away, with motes of light rising, into the next room. The entry gate is a cool
-blue-grey doorway with chevrons pointing in: when a room starts (also on
-restart) you walk in through it and it slides shut behind you as two leaves of
-the same grey, so once closed it is just wall.
+mistaken for floor. The exit is a full square of light (nested glowing squares,
+seen from above like a shaft of light), a cell of its own set into the room's edge
+or just outside it. It is a column rather than a doorway because a doorway at
+floor level read as a fixed height, so leaving from a tall crate looked like a
+drop: stepping onto the column keeps you at your height and floats you up and
+away, with motes of light rising, into the next room. Arriving is the mirror
+image: when a room starts (also on restart) a column of light comes on over the
+start cell, you rise up it from below to the height of the crate, and the light
+fades.
 
 An earlier look used a perspective camera over the middle of the room, so tall
 things scaled up and leaned away from the centre. It is still in `src/game.js`
@@ -137,26 +137,29 @@ as `step(..., { justEnough: true })`, which the experiment compares.
 
 ## Objective
 
-Initial version is a maze problem: reach the target cell, then step out. Only
-reachability matters, with no par or move count.
+Initial version is a maze problem: reach the exit. Only reachability matters,
+with no par or move count.
 
-The target cell is not special in itself: it is the cell next to a gap in the
-wall, and you win by stepping out through the gap (moving from the target cell
-in the exit direction, at any height). Levels without a gap side, such as the
-small test boards in the tests, are won on reaching the target cell. The gap (the "exit") is one side of the
-target cell that faces either off the board (the room's outer wall) or a wall
-cell that is connected through wall to the board's edge (a tunnel through the
-wall). A free-standing wall pillar can't hold an exit. In level text this is
-`T` plus a side letter, e.g. `0TL`; the engine rejects invalid gaps
-(`isValidExit`, `exitDirs`, `outerWalls`). There is one exit per room for now;
-several exits leading to different rooms would be a natural extension.
+The exit is a cell of its own, `E` in level text: a column of light that is
+inert like a wall (walking can't pass through it, no copies land on it, it does
+not count for reflooring), but stepping onto it from **any** open neighbour wins,
+at any height, since you float up rather than step down. So an exit set into the
+middle of a room's top row can be reached from three cells, and a level can offer
+more than one way in. One exit per room for now; several exits leading to
+different rooms would be a natural extension.
 
-Rooms chain together: the start cell is likewise next to an **entry gate**, the
-doorway you arrived through, with the same rules as the exit and never the same
-gap. In level text it is `S` plus a side letter, e.g. `0SD`. The entry has no
-effect on play: it is shut once you're in, so it can't be walked back through,
-and the solver ignores it.
-Levels without side letters still parse.
+Rooms chain together. The start (`S`) needs no gate: you arrive on a column of
+light over it, and nothing about the entry affects play, so the solver ignores it.
+
+Older levels used a target cell with a gap in the wall beside it (`T` plus a side
+letter, e.g. `0TL`, valid on the outside wall or a tunnel through wall connected
+to it: `isValidExit`, `exitDirs`, `outerWalls`), and `S` plus a side letter for an
+entry doorway. The engine still parses those (the tests use them), but the game
+no longer draws them, and `experiments/convert.js` turns a level into the exit-cell
+form: the exit cell goes where the gap was, in place of the tunnel's wall cell or
+in a new row or column outside the room. A tunnel whose wall cell touched other
+open cells would have gained extra ways in, so such exits (Levels 6, 10 and 15)
+were first moved to an edge side of the target, which leaves the solution unchanged.
 
 ## Code
 
@@ -166,15 +169,16 @@ Levels without side letters still parse.
 - `index.html`, `styles.css`, `src/game.js`: the play UI (SVG, top-down
   drawing, animation) with its home screen. `test.html` and `src/test-config.js`:
   the same game with test tools (see above). Undo is a history of snapshots. `src/levels.js` holds the rooms
-  in level text format, each with its shortest known solution.
+  in level text format, each with its shortest known solution. `experiments/convert.js`
+  converts old-style levels to the exit-cell form.
 - `experiments/generate.js`: hill-climbing level generator (see below).
 - `experiments/explore.js`: random boards solved by breadth-first search over
   (heights, position). Run `node experiments/explore.js`; the flags are listed
   at the top of the file.
 
-Level text is one row per line, cells separated by spaces: `#` wall, a height
-digit, optionally followed by `S` (start) or `T` (target) and then the side of
-its gate (`U`, `D`, `L` or `R`), e.g. `0SL 4 0TR`.
+Level text is one row per line, cells separated by spaces: `#` wall, `E` the exit
+cell, or a height digit optionally followed by `S` (start), e.g. `0S 4 1 E`.
+(The older `T` and side-letter forms still parse, see Objective.)
 
 The solver caps pile height at 9 and the search at 300,000 states, since
 spreading adds blocks and the state space is unbounded. It reports "unknown"
