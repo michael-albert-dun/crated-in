@@ -5,8 +5,8 @@ A box-manipulation puzzle on a grid.
 This is an early design sketch. There is a rules engine, headless experiments,
 a play UI (`index.html`) and a plain test UI (`test.html`).
 
-The fiction: the door slams behind you and you're crated in, with a lit doorway
-on the far side as the only way on. You have a wand that is supposed to move
+The fiction: the door slams behind you and you're crated in; across the room a
+doorway glows, your only way out. You have a wand that is supposed to move
 crates for you but isn't working properly: all it does is destroy the top of a
 nearby stack you can't climb and put copies down on its neighbours (yours
 included, so you wind up a level higher). You can clamber up or down one
