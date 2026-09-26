@@ -181,4 +181,5 @@ function merge(argv, at) {
   finish([...seen.values()].filter((item) => fits(item.a, args)), args);
 }
 
-main();
+if (require.main === module) main();
+module.exports = { fits, finish, parseArgs };
