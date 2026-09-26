@@ -175,7 +175,24 @@ running longer it drifts to 90 to 180 move solutions that are mostly repeated
 grinding, which probably isn't fun. Score doesn't yet measure what makes a
 puzzle good (few distinct solutions, tempting dead ends), so pick by eye.
 
-The nine rooms in `src/levels.js` came from this generator (plus the original
+The first levels in `src/levels.js` came from this generator (plus the original
 5x5 example as room 9; room 8 was regenerated when entry gates were added, since
 its start cell had no valid gate side), ordered from 4x4 rooms with 2 pushes up to 5x5 rooms
 with 14. The number of iterations is the difficulty dial.
+
+## Finding levels
+
+`experiments/analyse.js` explores every reachable state of a level (ignoring
+piles above 6, which no sensible solution needs) and reports what the shortest
+solution alone can't: how many distinct shortest solutions there are, how many
+of its moves lead somewhere you can't escape from (traps), how much it shuffles
+back and forth, and which open cells it never touches (an irrelevant corner).
+Open cells walled off from the start are counted too. `experiments/rate-levels.js`
+prints these for every level in `src/levels.js`.
+
+`experiments/find-levels.js` hill-climbs random boards on those measures instead
+of solution length alone, rejects boards with enclosed cells or more than 35%
+unused cells, keeps initial heights at 5 or below (pushes can build higher in
+play), and writes `src/candidates.js`. `test.html` lists those after the real
+levels as "Candidate N" for review; promote a good one by copying it into
+`src/levels.js`. The tuning weights are guesses; play the candidates and adjust.

@@ -25,10 +25,20 @@ const LEVELS = [
       0  2  2  4TU
       1  #  1  #
       2SL 0  #  #
-      #  #  1  0`,
+      #  #  #  #`,
   },
   {
     name: "Level 3",
+    info: "4x4, 5 pushes",
+    solution: "ULLLDLDDRRUULLLLLUU",
+    text: `
+      0TU #  3  #
+      3  2  0  1
+      0  2  4  2SR
+      #  1  3  3`,
+  },
+  {
+    name: "Level 4",
     info: "5x5, 5 pushes",
     solution: "LLLULDLULLUURRDRRRR",
     text: `
@@ -39,7 +49,18 @@ const LEVELS = [
       3  0  1  2SD 0`,
   },
   {
-    name: "Level 4",
+    name: "Level 5",
+    info: "5x5, 6 pushes",
+    solution: "UUUUULDRRDLURDRLLDDRDDL",
+    text: `
+      #  #  #  0  1
+      #  2  3  0  1
+      #  1  #  #  4
+      #  1  1  #  1
+      #  #  3TL #  0SR`,
+  },
+  {
+    name: "Level 6",
     info: "5x5, 6 pushes",
     solution: "DLLDLLUULLDDRUUULLLURURR",
     text: `
@@ -50,7 +71,7 @@ const LEVELS = [
       #  4  0  2  2`,
   },
   {
-    name: "Level 5",
+    name: "Level 7",
     info: "5x5, 10 pushes",
     solution: "LLURDLDDLUULDRRRRULLUURRRUURRRDDDDR",
     text: `
@@ -61,7 +82,18 @@ const LEVELS = [
       0  0  2  3  3SD`,
   },
   {
-    name: "Level 6",
+    name: "Level 8",
+    info: "5x5, 7 pushes",
+    solution: "DLLLUUULLLDDDRRRUUUUULDDDDLLUUUURRRRDRUU",
+    text: `
+      0  3  2  0TU #
+      1  4  1  2  #
+      1  #  2  #  #
+      1  #  3  #  0SU
+      1  0  1  4  1`,
+  },
+  {
+    name: "Level 9",
     info: "6x6, 11 pushes",
     solution: "UUUUUUURURDRDDDDDDRRRURRULUUUUR",
     text: `
@@ -73,7 +105,7 @@ const LEVELS = [
       1SD #  0  1  5  0`,
   },
   {
-    name: "Level 7",
+    name: "Level 10",
     info: "6x6, 12 pushes",
     solution: "UURUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
@@ -85,7 +117,7 @@ const LEVELS = [
       0SD #  #  #  #  #`,
   },
   {
-    name: "Level 8",
+    name: "Level 11",
     info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
@@ -96,7 +128,7 @@ const LEVELS = [
       0  1  3  0  #`,
   },
   {
-    name: "Level 9",
+    name: "Level 12",
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `

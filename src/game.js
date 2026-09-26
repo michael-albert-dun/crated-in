@@ -606,11 +606,29 @@ function entryPhase() {
   };
 }
 
-// Once you're in, the entry door slides shut behind you (after a beat).
+// Which way the figure should face when it is your turn: inward if you can walk
+// that way, else any way you can walk, else any way you can push. (A drop, or a
+// wall, is not a way you can move.)
+function readyFacing() {
+  const { level } = state;
+  const inward = level.startDir >= 0 ? level.startDir ^ 1 : 1;
+  const order = [inward, 0, 1, 2, 3];
+  for (const wanted of ["walked", "pushed"]) {
+    for (const d of order) {
+      if (step(level, state.current.game, d, { soft: true }).result === wanted) return d;
+    }
+  }
+  return inward;
+}
+
+// Once you're in, the entry door slides shut behind you (after a beat), and you
+// turn to face a way you can go.
 function closeDoorPhase() {
+  const rest = readyFacing();
   return {
     ms: 700,
     update(t) {
+      view.player.facing = rest;
       view.entryClosed = easeInOut(Math.max(0, (t - 0.2) / 0.8));
     },
   };
@@ -778,6 +796,7 @@ function restart() {
     message: "",
   };
   syncView();
+  view.player.facing = readyFacing();
   render();
   updateHud();
   playEntry();

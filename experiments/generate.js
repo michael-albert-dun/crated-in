@@ -12,10 +12,8 @@
 //   - the shortest solution has at least --min-pushes pushes.
 // The score is moves + 2 * pushes. Sideways moves are accepted so the search
 // can drift across plateaus. Output is in levels.js format.
-const { makeLevel, outerWalls, exitDirs, gateKey, formatLevel, createState, solve } = require("../src/engine.js");
-const { mulberry32, randomLevel } = require("./random-levels.js");
-
-const MAX_CELL_HEIGHT = 5;
+const { formatLevel, createState, solve } = require("../src/engine.js");
+const { mulberry32, randomLevel, mutate } = require("./random-levels.js");
 
 function parseArgs(argv) {
   const args = { size: "5x5", boards: 5, iterations: 1500, minPushes: 4, seed: 1, wall: 0.1, maxStates: 60000, justEnough: 0 };
@@ -34,52 +32,6 @@ function evaluate(level, args) {
   return { out, score: out.moves.length + 2 * out.pushes };
 }
 
-function pick(list, rand) {
-  return list[Math.floor(rand() * list.length)];
-}
-
-function mutate(level, rand) {
-  const wall = Uint8Array.from(level.wall);
-  const heights = Int16Array.from(createState(level).h);
-  let { start, target, exitDir, startDir } = level;
-  const cells = wall.length;
-  const i = Math.floor(rand() * cells);
-  const op = rand();
-  if (op < 0.55) {
-    if (wall[i]) return null;
-    heights[i] = Math.max(0, Math.min(MAX_CELL_HEIGHT, heights[i] + (rand() < 0.5 ? -1 : 1)));
-  } else if (op < 0.7) {
-    if (i === start || i === target) return null;
-    wall[i] = wall[i] ? 0 : 1;
-  } else if (op < 0.8) {
-    if (wall[i] || i === target) return null;
-    start = i;
-    startDir = -1;
-  } else if (op < 0.95) {
-    if (wall[i] || i === start) return null;
-    target = i;
-    exitDir = -1;
-  } else {
-    // Same cells, different side of a gap (if there is another).
-    if (rand() < 0.5) exitDir = -1;
-    else startDir = -1;
-  }
-  // Walls may have cut a tunnel to the outside, or a gate cell may have moved:
-  // keep each gate if it's still valid, otherwise pick a valid side or reject
-  // the mutation. The two gates must not share a gap.
-  const outer = outerWalls(level.width, level.height, wall);
-  const fix = (cell, dir) => {
-    const dirs = exitDirs(level.width, level.height, wall, cell, outer);
-    if (!dirs.length) return -1;
-    return dirs.includes(dir) ? dir : pick(dirs, rand);
-  };
-  exitDir = fix(target, exitDir);
-  startDir = fix(start, startDir);
-  if (exitDir < 0 || startDir < 0) return null;
-  if (gateKey(level.width, start, startDir) === gateKey(level.width, target, exitDir)) return null;
-  return makeLevel(level.width, level.height, wall, heights, start, target, exitDir, startDir);
-}
-
 function climb(width, height, args, rand) {
   let level = null;
   let current = null;
@@ -89,7 +41,7 @@ function climb(width, height, args, rand) {
   }
   if (!current) return null;
   for (let it = 0; it < args.iterations; it += 1) {
-    const candidate = mutate(level, rand);
+    const candidate = mutate(level, rand, 5);
     if (!candidate) continue;
     const result = evaluate(candidate, args);
     if (result && result.score >= current.score) {

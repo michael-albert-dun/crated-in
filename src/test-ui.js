@@ -14,6 +14,9 @@ const KEY_DIRS = {
   ArrowRight: 3, d: 3, D: 3,
 };
 
+// The real levels, then any candidates from experiments/find-levels.js.
+const ALL_LEVELS = LEVELS.concat(typeof CANDIDATES === "undefined" ? [] : CANDIDATES);
+
 const state = {
   levelIndex: 0,
   level: null,
@@ -59,7 +62,7 @@ function saveSettings() {
 
 function loadLevel(index) {
   state.levelIndex = index;
-  state.level = parseLevel(LEVELS[index].text);
+  state.level = parseLevel(ALL_LEVELS[index].text);
   restart();
   elements.select.value = String(index);
   const svg = elements.board;
@@ -222,7 +225,7 @@ function toggleCheat() {
 
 function init() {
   loadSettings();
-  LEVELS.forEach((level, i) => {
+  ALL_LEVELS.forEach((level, i) => {
     const option = document.createElement("option");
     option.value = String(i);
     option.textContent = `${level.name} (${level.info})`;

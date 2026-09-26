@@ -1,5 +1,5 @@
 // Random board helpers shared by the experiments.
-const { makeLevel, outerWalls, exitDirs, gateKey } = require("../src/engine.js");
+const { makeLevel, outerWalls, exitDirs, gateKey, createState } = require("../src/engine.js");
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -58,4 +58,53 @@ function randomLevel(width, height, wallP, rand) {
   return makeLevel(width, height, wall, heights, start, target, exitDir, startDir);
 }
 
-module.exports = { mulberry32, randomLevel };
+function pick(list, rand) {
+  return list[Math.floor(rand() * list.length)];
+}
+
+// One random change to a board: a height, a wall, the start or target cell, or
+// the side of a gate. Initial heights never exceed maxInitial (pushes can build
+// higher during play). Returns null if the change isn't valid.
+function mutate(level, rand, maxInitial = 5) {
+  const wall = Uint8Array.from(level.wall);
+  const heights = Int16Array.from(createState(level).h);
+  let { start, target, exitDir, startDir } = level;
+  const cells = wall.length;
+  const i = Math.floor(rand() * cells);
+  const op = rand();
+  if (op < 0.55) {
+    if (wall[i]) return null;
+    heights[i] = Math.max(0, Math.min(maxInitial, heights[i] + (rand() < 0.5 ? -1 : 1)));
+  } else if (op < 0.7) {
+    if (i === start || i === target) return null;
+    wall[i] = wall[i] ? 0 : 1;
+  } else if (op < 0.8) {
+    if (wall[i] || i === target) return null;
+    start = i;
+    startDir = -1;
+  } else if (op < 0.95) {
+    if (wall[i] || i === start) return null;
+    target = i;
+    exitDir = -1;
+  } else {
+    // Same cells, different side of a gap (if there is another).
+    if (rand() < 0.5) exitDir = -1;
+    else startDir = -1;
+  }
+  // Walls may have cut a tunnel to the outside, or a gate cell may have moved:
+  // keep each gate if it's still valid, otherwise pick a valid side or reject
+  // the mutation. The two gates must not share a gap.
+  const outer = outerWalls(level.width, level.height, wall);
+  const fix = (cell, dir) => {
+    const dirs = exitDirs(level.width, level.height, wall, cell, outer);
+    if (!dirs.length) return -1;
+    return dirs.includes(dir) ? dir : pick(dirs, rand);
+  };
+  exitDir = fix(target, exitDir);
+  startDir = fix(start, startDir);
+  if (exitDir < 0 || startDir < 0) return null;
+  if (gateKey(level.width, start, startDir) === gateKey(level.width, target, exitDir)) return null;
+  return makeLevel(level.width, level.height, wall, heights, start, target, exitDir, startDir);
+}
+
+module.exports = { mulberry32, randomLevel, mutate };
