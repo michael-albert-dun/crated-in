@@ -30,9 +30,9 @@ const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").mat
 
 const CRATE = { sideX: "#a97c45", sideY: "#c0925a", stroke: "#5b3d17", line: "rgba(91, 61, 23, 0.55)" };
 const LID_FILL = "#e3c38e";
-// The entry door that shuts behind you: dark wood, in two leaves.
-const DOOR = { top: "#7b6146", sideX: "#5b4630", sideY: "#6b533a", stroke: "#2e2418", line: "rgba(0, 0, 0, 0.35)" };
-const STONE = { top: "#5b606a", sideX: "#3f434a", sideY: "#4b4f57", stroke: "#25272b", line: "rgba(0, 0, 0, 0.3)" };
+const VOID_FILL = "#b4dcf6"; // the space around a free-standing pillar: peering down into a void
+const PILLAR = { body: "#4d525b", stroke: "#25272b", inset: "#0b0c0e", star: "#c9cdd4" };
+const STONE = { top: "#3f434b" }; // the plain grey of the boundary walls
 
 const state = {
   levelIndex: 0,
@@ -40,7 +40,7 @@ const state = {
   // Each entry is a full snapshot, so undo is just popping.
   history: [],
   current: null,
-  settings: { numbers: true, gentle: false, justEnough: false, sinkFloor: false },
+  settings: { gentle: false, justEnough: false },
   solved: new Set(),
   cheat: false,
 };
@@ -51,14 +51,13 @@ const view = {
   h: null,
   player: { x: 0, y: 0, base: 0, z: 0, alpha: 1, scale: 1, facing: 1, leanX: 0, leanY: 0 },
   ghosts: [],
+  wand: null, // during a push: { d, reach, swing, glow, alpha, burst, trail }, see drawWand
   glow: 0,
   entryClosed: 1, // 0 = entry doorway open, 1 = door shut
   // Reflooring shifts every height down together, which changes no rule (they all
-  // depend on height differences). By default the numbers just keep counting up:
-  // `offset` is the number of layers removed so far, added back for display.
+  // depend on height differences), so the numbers just keep counting up: `offset`
+  // is the number of layers removed so far, added back for display.
   offset: 0,
-  sink: null, // during the optional "sink the floor" animation: { t, k }
-  shake: { x: 0, y: 0 }, // that animation shakes the whole room
 };
 let geo = null;
 let anim = null;
@@ -71,10 +70,12 @@ const elements = {
   cheatStatus: document.querySelector("#cheat-status"),
   undo: document.querySelector("#undo"),
   restart: document.querySelector("#restart"),
-  select: document.querySelector("#room-select"),
-  numbers: document.querySelector("#opt-numbers"),
+  menuScreen: document.querySelector("#menu-screen"),
+  playScreen: document.querySelector("#play-screen"),
+  menuButton: document.querySelector("#menu-button"),
+  grid: document.querySelector("#level-grid"),
+  progress: document.querySelector("#progress"),
   gentle: document.querySelector("#opt-gentle"),
-  sink: document.querySelector("#opt-sink"),
 };
 
 // ---------------------------------------------------------------- storage
@@ -158,39 +159,56 @@ function gateInfo(cell, dir) {
   else if (col >= width) rect = [cellX(width), cellY(row), cellX(width) + PAD, cellY(row + 1)];
   else if (row < 0) rect = [cellX(col), 0, cellX(col + 1), PAD];
   else rect = [cellX(col), cellY(height), cellX(col + 1), cellY(height) + PAD];
-  return { row, col, onBoard, rect, farRect };
+  return { row, col, onBoard, rect, farRect, dir };
 }
 
-// Boundary wall: a half-width band, only beside open floor (edge wall cells are
-// their own boundary, so rooms need not look square), with gaps at the gates.
-function boundarySegments(gates) {
+// The grey material around the room. "Outside" is anything off the board or a
+// wall cell joined to the board's edge (outer[]); it is drawn as the dark
+// backdrop, and every open cell next to it gets a half-width grey edge on each
+// such side, plus a half-by-half block on each corner where both neighbours and
+// the diagonal one are outside, so the silhouette has no notches (with an
+// open neighbour, its own edge already covers that corner). A tunnel's cell counts as open
+// (its near half is the doorway, its far half solid grey) and only takes edges
+// along its sides. Gaps are left where the gates are.
+function boundaryRects(gates, outer) {
   const { width: W, height: H, wall } = state.level;
-  // A tunnel's alcove counts as open, so the boundary runs beside it like any floor.
-  const alcove = (r, c) => gates.some((gate) => gate.onBoard && gate.row === r && gate.col === c);
-  const open = (r, c) => r >= 0 && r < H && c >= 0 && c < W && (!wall[r * W + c] || alcove(r, c));
-  const gap = (r, c) => gates.some((gate) => !gate.onBoard && gate.row === r && gate.col === c);
-  const segs = [];
-  const top = [];
-  const bottom = [];
-  const left = [];
-  const right = [];
-  for (let c = 0; c < W; c += 1) {
-    top[c] = open(0, c) && !gap(-1, c);
-    bottom[c] = open(H - 1, c) && !gap(H, c);
-    if (top[c]) segs.push([cellX(c), 0, cellX(c + 1), PAD]);
-    if (bottom[c]) segs.push([cellX(c), cellY(H), cellX(c + 1), cellY(H) + PAD]);
-  }
+  const tunnels = gates.filter((gate) => gate.onBoard);
+  const tunnelAt = (r, c) => tunnels.find((gate) => gate.row === r && gate.col === c);
+  const isTunnel = (r, c) => !!tunnelAt(r, c);
+  const inside = (r, c) => r >= 0 && r < H && c >= 0 && c < W;
+  const outside = (r, c) => !inside(r, c) || (wall[r * W + c] && outer[r * W + c] && !isTunnel(r, c));
+  // The sides of cells that face off the board through a gate: left as gaps.
+  const gaps = [[state.level.target, state.level.exitDir], [state.level.start, state.level.startDir]]
+    .filter(([, dir]) => dir >= 0)
+    .map(([cell, dir]) => [Math.floor(cell / W), cell % W, dir]);
+  const isGap = (r, c, d) => gaps.some(([gr, gc, gd]) => gr === r && gc === c && gd === d);
+  const rects = tunnels.map((gate) => gate.farRect);
   for (let r = 0; r < H; r += 1) {
-    left[r] = open(r, 0) && !gap(r, -1);
-    right[r] = open(r, W - 1) && !gap(r, W);
-    if (left[r]) segs.push([0, cellY(r), PAD, cellY(r + 1)]);
-    if (right[r]) segs.push([cellX(W), cellY(r), cellX(W) + PAD, cellY(r + 1)]);
+    for (let c = 0; c < W; c += 1) {
+      const tunnel = tunnelAt(r, c);
+      if (!tunnel && outside(r, c)) continue;
+      const [x0, y0, x1, y1] = [cellX(c), cellY(r), cellX(c + 1), cellY(r + 1)];
+      DIRS.forEach((dir, d) => {
+        if (!outside(r + dir.dr, c + dir.dc) || isGap(r, c, d)) return;
+        // Along the tunnel's axis lies the doorway (near) and the solid far half.
+        if (tunnel && (dir.dr !== 0) === (DIRS[tunnel.dir].dr !== 0)) return;
+        if (dir.dr < 0) rects.push([x0, y0 - PAD, x1, y0]);
+        else if (dir.dr > 0) rects.push([x0, y1, x1, y1 + PAD]);
+        else if (dir.dc < 0) rects.push([x0 - PAD, y0, x0, y1]);
+        else rects.push([x1, y0, x1 + PAD, y1]);
+      });
+      if (tunnel) continue;
+      for (const dr of [-1, 1]) {
+        for (const dc of [-1, 1]) {
+          if (!outside(r + dr, c + dc) || !outside(r + dr, c) || !outside(r, c + dc)) continue;
+          const [cx0, cx1] = dc < 0 ? [x0 - PAD, x0] : [x1, x1 + PAD];
+          const [cy0, cy1] = dr < 0 ? [y0 - PAD, y0] : [y1, y1 + PAD];
+          rects.push([cx0, cy0, cx1, cy1]);
+        }
+      }
+    }
   }
-  if (top[0] || left[0]) segs.push([0, 0, PAD, PAD]);
-  if (top[W - 1] || right[0]) segs.push([cellX(W), 0, cellX(W) + PAD, PAD]);
-  if (bottom[0] || left[H - 1]) segs.push([0, cellY(H), PAD, cellY(H) + PAD]);
-  if (bottom[W - 1] || right[H - 1]) segs.push([cellX(W), cellY(H), cellX(W) + PAD, cellY(H) + PAD]);
-  return segs;
+  return rects;
 }
 
 // --------------------------------------------------------------- drawing
@@ -261,14 +279,8 @@ function drawPrism(g, X0, Y0, X1, Y1, zb, zt, style, options = {}) {
     }
   }
   const at = (u, v) => project(X0 + (X1 - X0) * u, Y0 + (Y1 - Y0) * v, zt);
-  poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], options.top || style.top, style.stroke);
+  poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], options.top || style.top, null);
   if (options.lid) drawLidMarks(g, at, style);
-  if (options.mortar) {
-    line(g, at(0, 0.5), at(1, 0.5), style.line);
-    line(g, at(0.5, 0), at(0.5, 0.5), style.line);
-    line(g, at(0.25, 0.5), at(0.25, 1), style.line);
-    line(g, at(0.75, 0.5), at(0.75, 1), style.line);
-  }
   return at;
 }
 
@@ -281,25 +293,15 @@ function drawFloorTile(g, br, bc) {
   const X0 = cellX(bc);
   const Y0 = cellY(br);
   const at = (u, v) => [X0 + CELL * u, Y0 + CELL * v];
-  poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], LID_FILL, CRATE.stroke);
+  poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], LID_FILL, null);
   drawLidMarks(g, at, CRATE, 0.5); // floor: a fainter bevel than the stacks
   // Floor is unnumbered until the whole room has been lifted; then it shows its height too.
-  if (state.settings.numbers && view.offset > 0) drawNumber(g, at, 1, view.offset, 0.8);
+  if (view.offset > 0) drawNumber(g, at, 1, view.offset, 0.8);
 }
 
-// The number stencilled on a lid: the height plus the display offset. In the
-// optional sink animation each number fades down by `sink.k` instead.
+// The number stencilled on a lid: the height plus the display offset.
 function drawStackNumber(g, at, hd) {
-  const shown = Math.round(hd) + view.offset;
-  const k = scale(hd);
-  const sink = view.sink;
-  if (!sink) {
-    drawNumber(g, at, k, shown, 0.8);
-    return;
-  }
-  const e = easeInOut(sink.t);
-  drawNumber(g, at, k, shown, 0.8 * (1 - e), 5 * e);
-  if (shown - sink.k > 0) drawNumber(g, at, k, shown - sink.k, 0.8 * e, -5 * (1 - e));
+  drawNumber(g, at, scale(hd), Math.round(hd) + view.offset, 0.8);
 }
 
 function drawStack(g, i, hd) {
@@ -312,11 +314,51 @@ function drawStack(g, i, hd) {
   for (let j = PERSPECTIVE ? 0 : Math.max(0, layers - 1); j < layers; j += 1) {
     at = drawCrate(g, X0, Y0, j, Math.min(j + 1, hd), j === layers - 1);
   }
-  if (at && state.settings.numbers && hd > 0.5) drawStackNumber(g, at, hd);
+  if (at && hd > 0.5) drawStackNumber(g, at, hd);
 }
 
-function drawWall(g, X0, Y0, X1, Y1) {
-  drawPrism(g, X0, Y0, X1, Y1, 0, WALL_LAYERS, STONE, { courses: WALL_LAYERS, mortar: true });
+// Undifferentiated grey, all the rectangles as one path: separate shapes would
+// leave faint anti-aliasing seams wherever two of them meet.
+function drawWall(g, rects) {
+  const d = rects.map(([X0, Y0, X1, Y1]) => {
+    const corners = [project(X0, Y0, WALL_LAYERS), project(X1, Y0, WALL_LAYERS), project(X1, Y1, WALL_LAYERS), project(X0, Y1, WALL_LAYERS)];
+    return `M${pts(corners).replace(/ /g, "L")}Z`;
+  }).join("");
+  svgEl("path", { d, fill: STONE.top, filter: "url(#wall-noise)" }, g);
+}
+
+// Octagon inside the unit square with margin m and corner cuts of `cut` (all as
+// fractions of the cell). The cut is smaller than a regular octagon's (0.29 of
+// the width) so the diagonal sides come out shorter than the straight ones.
+function octagon(at, m, cut) {
+  const a = m;
+  const b = 1 - m;
+  return [at(a + cut, a), at(b - cut, a), at(b, a + cut), at(b, b - cut), at(b - cut, b), at(a + cut, b), at(a, b - cut), at(a, a + cut)];
+}
+
+// A free-standing wall cell: a dark grey octagonal pillar with a black inset
+// running parallel to its edges and a light eight-pointed star in the middle.
+// Its cell's floor is drawn as void (see render), which is what keeps it from
+// being mistaken for floor. Boundary walls and walls joined to them stay stone.
+function drawPillar(g, X0, Y0) {
+  const at = (u, v) => project(X0 + CELL * u, Y0 + CELL * v, WALL_LAYERS);
+  const m = 0.07;
+  const w = 1 - 2 * m;
+  const cut = 0.2 * w;
+  poly(g, octagon(at, m, cut), PILLAR.body, PILLAR.stroke, 1.6);
+  // Inset by d, measured across the straight sides. A diagonal side moves in by
+  // d too, so the corner cut shrinks by d * (2 - sqrt 2).
+  const d = 0.075;
+  const inset = octagon(at, m + d, cut - d * (2 - Math.SQRT2));
+  const ring = poly(g, inset, "none", PILLAR.inset, 3);
+  ring.setAttribute("opacity", 0.9);
+  const star = [];
+  for (let k = 0; k < 16; k += 1) {
+    const angle = (k * Math.PI) / 8;
+    const r = k % 2 === 0 ? 0.25 : 0.11;
+    star.push(at(0.5 + r * Math.cos(angle), 0.5 + r * Math.sin(angle)));
+  }
+  poly(g, star, PILLAR.star, "#7b808a", 1);
 }
 
 // A doorway. The exit is warm and lit, with chevrons pointing out. The entry is
@@ -368,6 +410,62 @@ function drawGhost(g, ghost) {
     transform: lift > 0 ? `translate(${cx} ${cy - lift * 9}) scale(${1 + 0.1 * lift}) translate(${-cx} ${-cy})` : "",
   }, g);
   drawCrate(group, X0, Y0, ghost.z, ghost.z + 1, true);
+}
+
+// A four-pointed sparkle centred on (x, y).
+function drawSparkle(g, x, y, r, alpha) {
+  const list = [];
+  for (let k = 0; k < 8; k += 1) {
+    const angle = (k * Math.PI) / 4;
+    const len = k % 2 === 0 ? r : r * 0.3;
+    list.push([x + len * Math.cos(angle), y + len * Math.sin(angle)]);
+  }
+  const star = poly(g, list, "#fff3b0", "#e0a92b", 0.8);
+  star.setAttribute("opacity", alpha);
+}
+
+// The wand, for the push: it swings out towards the stack, flicks, and at the
+// top of the jump the tip flares and a ring of sparkles bursts off it; then it
+// fades while twinkles follow the copies down onto their stacks. `w.reach` and
+// `w.swing` pose it, `w.glow` lights the tip, `w.burst` (0..1, or -1 for none)
+// spreads the ring, and `w.trail` (0..1, or -1) drives the twinkles.
+function drawWand(g) {
+  const w = view.wand;
+  const pl = view.player;
+  if (!w) return;
+  const lift = PERSPECTIVE ? 0 : pl.z - pl.base;
+  const hand = [cellX(pl.x) + pl.leanX + 4 * pl.scale, cellY(pl.y) - lift * 12 + pl.leanY + 5 * pl.scale];
+  const { dr, dc } = DIRS[w.d];
+  const angle = Math.atan2(dr, dc) + w.swing;
+  const dir = [Math.cos(angle), Math.sin(angle)];
+  const at = (len) => [hand[0] + dir[0] * len, hand[1] + dir[1] * len];
+  const from = at(9);
+  const tip = at(9 + 21 * w.reach);
+  const group = svgEl("g", { opacity: w.alpha }, g);
+  line(group, from, tip, "#3b230c", 5.4);
+  line(group, from, tip, "#d9a86a", 2.8);
+  if (w.glow > 0) {
+    svgEl("circle", { cx: tip[0], cy: tip[1], r: 5 + 9 * w.glow, fill: `rgba(255, 238, 150, ${0.55 * w.glow})` }, group);
+  }
+  svgEl("circle", { cx: tip[0], cy: tip[1], r: 2.8, fill: "#ffe27a", stroke: "#b8860b", "stroke-width": 1 }, group);
+  if (w.burst >= 0) {
+    for (let k = 0; k < 7; k += 1) {
+      const a = (k * 2 * Math.PI) / 7 + w.burst * 1.4;
+      const dist = 6 + 20 * easeOut(w.burst);
+      drawSparkle(group, tip[0] + dist * Math.cos(a), tip[1] + dist * Math.sin(a), 5 * (1 - 0.6 * w.burst), 1 - w.burst);
+    }
+  }
+  if (w.trail >= 0) {
+    view.ghosts.forEach((ghost, gi) => {
+      const cx = cellX(ghost.x);
+      const cy = cellY(ghost.y) - Math.max(0, ghost.lift) * 9;
+      for (let k = 0; k < 2; k += 1) {
+        const a = w.trail * 9 + gi * 2 + k * Math.PI;
+        const r = 3 + 3 * Math.abs(Math.sin(w.trail * 16 + gi + k * 2));
+        drawSparkle(g, cx + 16 * Math.cos(a), cy + 16 * Math.sin(a), r, 0.95 * (1 - w.trail));
+      }
+    });
+  }
 }
 
 function drawPlayer(g) {
@@ -439,13 +537,21 @@ function render() {
   svgEl("stop", { offset: "0%", "stop-color": "#cfe2ff", "stop-opacity": 0.6 }, beamEntry);
   svgEl("stop", { offset: "100%", "stop-color": "#cfe2ff", "stop-opacity": 0 }, beamEntry);
 
+  const outer = outerWalls(level.width, level.height, level.wall);
+  // Fine grain for the grey walls: sparse, faint speckles. Grey fractal noise is
+  // flattened to neutral through its middle range so that only the rarer extremes
+  // deviate, then blended over the fill (overlay: 0.5 = no change) and clipped to it.
+  const noise = svgEl("filter", { id: "wall-noise", x: 0, y: 0, width: "100%", height: "100%", "color-interpolation-filters": "sRGB" }, defs);
+  svgEl("feTurbulence", { type: "fractalNoise", baseFrequency: 1.1, numOctaves: 2, seed: 7, result: "grain" }, noise);
+  svgEl("feColorMatrix", { in: "grain", type: "matrix", values: "1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 1", result: "grey" }, noise);
+  const speckle = svgEl("feComponentTransfer", { in: "grey", result: "speckle" }, noise);
+  for (const channel of ["feFuncR", "feFuncG", "feFuncB"]) {
+    svgEl(channel, { type: "table", tableValues: "0.32 0.36 0.42 0.47 0.5 0.5 0.5 0.5 0.55 0.62 0.68" }, speckle);
+  }
+  svgEl("feBlend", { in: "SourceGraphic", in2: "speckle", mode: "overlay", result: "mixed" }, noise);
+  svgEl("feComposite", { in: "mixed", in2: "SourceGraphic", operator: "in" }, noise);
   const floor = svgEl("g", {}, svg);
   const scene = svgEl("g", {}, svg);
-  if (view.shake.x || view.shake.y) {
-    const shake = `translate(${view.shake.x.toFixed(2)} ${view.shake.y.toFixed(2)})`;
-    floor.setAttribute("transform", shake);
-    scene.setAttribute("transform", shake);
-  }
   const exit = gateInfo(level.target, level.exitDir);
   const entry = gateInfo(level.start, level.startDir);
   const gates = [exit, entry].filter(Boolean);
@@ -453,19 +559,20 @@ function render() {
   const distance2 = (x, y) => (x - geo.cx) ** 2 + (y - geo.cy) ** 2;
 
   if (exit) drawPassage(floor, exit.rect, level.exitDir, false);
-  if (entry) drawPassage(floor, entry.rect, level.startDir, true);
+  // Once shut, the entry is plain wall: drawing the doorway under it would leak a pale edge.
+  if (entry && view.entryClosed < 0.999) drawPassage(floor, entry.rect, level.startDir, true);
   for (let br = 0; br < level.height; br += 1) {
     for (let bc = 0; bc < level.width; bc += 1) {
       const i = br * level.width + bc;
       const tunnel = gates.find((gate) => gate.onBoard && gate.row === br && gate.col === bc);
       if (tunnel) {
-        const [fx0, fy0, fx1, fy1] = tunnel.farRect;
-        items.push({ key: WALL_LAYERS + 1, dist: distance2((fx0 + fx1) / 2, (fy0 + fy1) / 2), draw: (g) => drawWall(g, fx0, fy0, fx1, fy1) });
         continue;
       }
       const [X0, Y0] = [cellX(bc), cellY(br)];
       if (level.wall[i]) {
-        items.push({ key: WALL_LAYERS + 1, dist: distance2(X0 + CELL / 2, Y0 + CELL / 2), draw: (g) => drawWall(g, X0, Y0, X0 + CELL, Y0 + CELL) });
+        if (outer[i]) continue; // outside: the grey edges are drawn from the open cells (boundaryRects)
+        svgEl("rect", { x: X0, y: Y0, width: CELL, height: CELL, fill: VOID_FILL }, floor);
+        items.push({ key: WALL_LAYERS + 1, dist: distance2(X0 + CELL / 2, Y0 + CELL / 2), draw: (g) => drawPillar(g, X0, Y0) });
         continue;
       }
       drawFloorTile(floor, br, bc);
@@ -478,19 +585,17 @@ function render() {
       }
     }
   }
-  if (entry && view.entryClosed > 0.001) {
-    for (const [X0, Y0, X1, Y1] of doorLeaves(entry.rect, level.startDir, view.entryClosed)) {
-      items.push({ key: WALL_LAYERS + 1, dist: distance2((X0 + X1) / 2, (Y0 + Y1) / 2), draw: (g) => drawPrism(g, X0, Y0, X1, Y1, 0, WALL_LAYERS, DOOR) });
-    }
-  }
-  for (const [X0, Y0, X1, Y1] of boundarySegments(gates)) {
-    items.push({ key: WALL_LAYERS + 1, dist: distance2((X0 + X1) / 2, (Y0 + Y1) / 2), draw: (g) => drawWall(g, X0, Y0, X1, Y1) });
-  }
+  const greys = boundaryRects(gates, outer);
+  // The entry door slides shut as two leaves of the same grey, so once closed it is just wall.
+  if (entry && view.entryClosed > 0.001) greys.push(...doorLeaves(entry.rect, level.startDir, view.entryClosed));
+  if (greys.length) items.push({ key: WALL_LAYERS + 1, dist: 0, draw: (g) => drawWall(g, greys) });
   for (const ghost of view.ghosts) {
     // The copy that slides in under the player is drawn beneath them.
     items.push({ key: ghost.under ? view.player.z + 0.4 : ghost.z + 1, dist: 0, draw: (g) => drawGhost(g, ghost) });
   }
   items.push({ key: view.player.z + 0.5, dist: 0, draw: drawPlayer });
+  // Above everything, so the tip stays visible against the crate it is pointing at.
+  if (view.wand) items.push({ key: 1000, dist: 0, draw: drawWand });
   // Higher things cover lower ones; among equals, nearer the edge goes first.
   items.sort((a, b) => a.key - b.key || b.dist - a.dist);
   for (const item of items) item.draw(scene);
@@ -568,7 +673,7 @@ function settle() {
   render();
   updateHud();
   if (state.current.status === "won" && state.levelIndex + 1 < LEVELS.length) {
-    loadLevel(state.levelIndex + 1);
+    openLevel(state.levelIndex + 1, "replace");
   }
 }
 
@@ -729,11 +834,20 @@ function pushPhases(prevGame, out, d) {
     const liftZ = top - 1 + 1.1;
     // Jump, and bump the top crate at the peak so it pops up.
     phases.push({
-      ms: 260,
+      ms: 380,
       update(t) {
         view.h.set(before);
         view.h[pile] = top - 1;
         const bump = easeOut(Math.max(0, (t - 0.5) * 2));
+        view.wand = {
+          d,
+          reach: easeOut(Math.min(1, t * 2.5)),
+          swing: 0.7 * Math.sin(t * 7) * (1 - 0.6 * t),
+          glow: t > 0.5 ? Math.sin(Math.PI * Math.min(1, (t - 0.5) * 2 + 0.2)) : 0,
+          alpha: 1,
+          burst: t > 0.5 ? (t - 0.5) * 2 : -1,
+          trail: -1,
+        };
         view.ghosts = [{ x: pc.x, y: pc.y, z: top - 1 + 1.1 * bump, lift: 1.1 * bump, alpha: 1 }];
         const lean = 7 * Math.sin(Math.PI * Math.min(1, t * 1.5));
         pl.leanX = DIRS[d].dc * lean;
@@ -749,6 +863,7 @@ function pushPhases(prevGame, out, d) {
         pl.leanX = 0;
         pl.leanY = 0;
         const e = easeOut(t);
+        view.wand = t < 1 ? { d, reach: 1, swing: 0, glow: 0, alpha: 1 - easeInOut(Math.min(1, t / 0.5)), burst: -1, trail: t } : null;
         const rise = easeInOut(Math.max(0, Math.min(1, (t - 0.55) / 0.45)));
         view.h.set(before);
         view.h[pile] = top - 1;
@@ -774,24 +889,7 @@ function pushPhases(prevGame, out, d) {
     for (const n of nbrs) hs[n] += 1;
   }
 
-  // Reflooring: by default nothing to animate (the numbers just keep counting
-  // up, via the offset). The optional version is a slow elevator: the room shakes
-  // and each number fades down by the layers removed.
-  if (out.reflooded > 0 && state.settings.sinkFloor) {
-    const raised = Float64Array.from(hs);
-    const k = out.reflooded;
-    phases.push({
-      ms: 1200,
-      update(t) {
-        view.h.set(raised);
-        view.ghosts = [];
-        stand(0);
-        view.sink = t < 1 ? { t, k } : null;
-        const amp = t < 1 ? 2.6 * Math.sin(Math.PI * Math.min(1, t * 1.1)) : 0;
-        view.shake = { x: Math.sin(t * 70) * amp, y: Math.cos(t * 53) * amp * 0.6 };
-      },
-    });
-  }
+  // Reflooring needs no animation: the numbers just keep counting up, via the offset.
   return phases;
 }
 
@@ -803,11 +901,10 @@ function syncView() {
   const pl = view.player;
   view.h = Float64Array.from(game.h);
   view.ghosts = [];
+  view.wand = null;
   view.glow = status === "won" ? 1 : 0;
   view.entryClosed = 1;
-  view.offset = state.settings.sinkFloor ? 0 : state.current.offset;
-  view.sink = null;
-  view.shake = { x: 0, y: 0 };
+  view.offset = state.current.offset;
   Object.assign(pl, {
     x: c.x, y: c.y, base: game.h[game.pos], z: game.h[game.pos],
     alpha: status === "playing" ? 1 : 0, scale: 1, leanX: 0, leanY: 0,
@@ -933,36 +1030,73 @@ function updateHud() {
     box.textContent = "Couldn't tell: the search limit was reached.";
   }
 
-  for (const [i, option] of [...elements.select.options].entries()) {
-    option.textContent = `${state.solved.has(i) ? "✓ " : ""}${LEVELS[i].name}`;
-  }
-  elements.select.value = String(state.levelIndex);
+}
+
+// ---------------------------------------------------------------- screens
+
+// Two screens on one page: the home screen (story, settings, level grid) and the
+// play screen. The address bar follows along ("?level=3" while playing, plain
+// while at home) so the back button, reloads and shared links all work.
+function buildGrid() {
+  const next = LEVELS.findIndex((_, i) => !state.solved.has(i));
+  elements.grid.replaceChildren();
+  LEVELS.forEach((level, i) => {
+    const solved = state.solved.has(i);
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = `level-tile${solved ? " solved" : ""}${i === next ? " next" : ""}`;
+    tile.setAttribute("role", "listitem");
+    tile.setAttribute("aria-label", `${level.name}${solved ? ", solved" : ""}`);
+    tile.textContent = String(i + 1);
+    if (solved) {
+      const tick = document.createElement("span");
+      tick.className = "tick";
+      tick.textContent = "✓";
+      tile.appendChild(tick);
+    }
+    tile.addEventListener("click", () => openLevel(i, "push"));
+    elements.grid.appendChild(tile);
+  });
+  elements.progress.textContent = `${state.solved.size} of ${LEVELS.length} solved`;
+}
+
+function showMenu(mode) {
+  finishAnimation();
+  elements.playScreen.hidden = true;
+  elements.menuScreen.hidden = false;
+  document.title = "Crated In";
+  buildGrid();
+  if (mode === "push") history.pushState(null, "", location.pathname);
+  window.scrollTo(0, 0);
+}
+
+// mode: "push" adds a history entry, "replace" swaps the current one (moving on
+// to the next room), "none" leaves the address alone (already there).
+function openLevel(index, mode) {
+  elements.menuScreen.hidden = true;
+  elements.playScreen.hidden = false;
+  document.title = `${LEVELS[index].name} · Crated In`;
+  const url = `?level=${index + 1}`;
+  if (mode === "push") history.pushState(null, "", url);
+  else if (mode === "replace") history.replaceState(null, "", url);
+  loadLevel(index);
+  window.scrollTo(0, 0);
+}
+
+function route() {
+  const requested = Number(new URLSearchParams(location.search).get("level")) - 1;
+  if (requested >= 0 && requested < LEVELS.length) openLevel(requested, "none");
+  else showMenu("none");
 }
 
 function init() {
   loadStorage();
-  LEVELS.forEach((level, i) => {
-    elements.select.appendChild(new Option(level.name, String(i)));
-  });
-  elements.numbers.checked = state.settings.numbers;
   elements.gentle.checked = state.settings.gentle;
-  elements.sink.checked = state.settings.sinkFloor;
 
-  elements.select.addEventListener("change", () => loadLevel(Number(elements.select.value)));
+  elements.menuButton.addEventListener("click", () => showMenu("push"));
+  window.addEventListener("popstate", route);
   elements.undo.addEventListener("click", undo);
   elements.restart.addEventListener("click", restart);
-  elements.numbers.addEventListener("change", () => {
-    state.settings.numbers = elements.numbers.checked;
-    saveStorage();
-    render();
-  });
-  elements.sink.addEventListener("change", () => {
-    finishAnimation();
-    state.settings.sinkFloor = elements.sink.checked;
-    saveStorage();
-    syncView();
-    render();
-  });
   elements.gentle.addEventListener("change", () => {
     state.settings.gentle = elements.gentle.checked;
     saveStorage();
@@ -970,11 +1104,13 @@ function init() {
 
   document.addEventListener("keydown", (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.target instanceof HTMLSelectElement) return;
+    if (event.target instanceof HTMLSelectElement || elements.playScreen.hidden) return;
     if (event.key === "z" || event.key === "Z") {
       undo();
     } else if (event.key === "r" || event.key === "R") {
       restart();
+    } else if (event.key === "m" || event.key === "M" || event.key === "Escape") {
+      showMenu("push");
     } else if (event.key === "c" || event.key === "C") {
       state.cheat = !state.cheat;
       updateHud();
@@ -984,8 +1120,7 @@ function init() {
     }
   });
 
-  const requested = Number(new URLSearchParams(location.search).get("level")) - 1;
-  loadLevel(requested >= 0 && requested < LEVELS.length ? requested : 0);
+  route();
 }
 
 init();

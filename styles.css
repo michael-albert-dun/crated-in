@@ -132,35 +132,87 @@ kbd {
   font-weight: 600;
 }
 
-.more {
-  margin-top: 0.75rem;
+[hidden] {
+  display: none !important;
+}
+
+h2 {
+  margin: 1.4rem 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+#progress {
   color: var(--muted);
   font-size: 0.9rem;
+  font-weight: 400;
 }
 
-.more summary {
-  cursor: pointer;
-  display: block;
-  padding: 0.55rem 0.9rem;
+.story p {
+  margin: 0.8rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+.howto {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.howto li + li {
+  margin-top: 0.4rem;
+}
+
+.howto strong {
   color: var(--ink);
-  font-size: 1rem;
-  font-weight: 600;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 6px;
 }
 
-.more[open] summary {
-  border-color: var(--accent);
-}
-
-.more label {
+.settings label {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
-.tip {
-  line-height: 1.5;
+#level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.level-tile {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.level-tile:hover {
+  border-color: var(--accent);
+}
+
+/* The first level you haven't solved yet. */
+.level-tile.next {
+  border: 2px solid var(--accent);
+}
+
+.level-tile.solved {
+  background: #4a4030;
+  color: var(--accent);
+}
+
+.level-tile .tick {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.35rem;
+  font-size: 0.8rem;
+}
+
+#menu-button {
+  padding: 0.3rem 0.7rem;
 }

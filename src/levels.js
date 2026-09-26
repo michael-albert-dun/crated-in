@@ -4,11 +4,22 @@
 // "name" is what the play UI shows (plain "Level N" for now, since the levels
 // may get real names); "info" (size and pushes) is only for the test UI.
 // "solution" is the shortest known solution with single-spread pushes (from
-// the solver), for reference. Found with experiments/generate.js; ordered
-// roughly by difficulty.
+// the solver), for reference. Level 1 is a hand-made tutorial; the rest were
+// found with experiments/generate.js, ordered roughly by difficulty.
 const LEVELS = [
   {
     name: "Level 1",
+    info: "3x5, 1 push (hand-made tutorial)",
+    solution: "UUUURRRDDR",
+    text: `
+      2  4  1
+      2  #  1
+      2  0  0TR
+      1  #  #
+      0SD #  #`,
+  },
+  {
+    name: "Level 2",
     info: "4x4, 2 pushes",
     solution: "DRULLUUURU",
     text: `
@@ -18,7 +29,7 @@ const LEVELS = [
       1  1  1  2`,
   },
   {
-    name: "Level 2",
+    name: "Level 3",
     info: "4x4, 3 pushes",
     solution: "UURRRRRRU",
     text: `
@@ -28,28 +39,28 @@ const LEVELS = [
       #  #  #  #`,
   },
   {
-    name: "Level 3",
+    name: "Level 4",
     info: "4x4, 5 pushes",
     solution: "ULLLDLDDRRUULLLLLUU",
     text: `
-      0TU #  3  #
+      0TU #  #  #
       3  2  0  1
-      0  2  4  2SR
+      0  2  #  2SR
       #  1  3  3`,
   },
   {
-    name: "Level 4",
+    name: "Level 5",
     info: "5x5, 5 pushes",
     solution: "LLLULDLULLUURRDRRRR",
     text: `
-      3  #  #  0  #
+      #  #  #  #  #
       3  2  1  0  0
       0  #  0  0  2TR
       3  1  #  0  #
-      3  0  1  2SD 0`,
+      3  0  1  2SD #`,
   },
   {
-    name: "Level 5",
+    name: "Level 6",
     info: "5x5, 6 pushes",
     solution: "UUUUULDRRDLURDRLLDDRDDL",
     text: `
@@ -60,7 +71,7 @@ const LEVELS = [
       #  #  3TL #  0SR`,
   },
   {
-    name: "Level 6",
+    name: "Level 7",
     info: "5x5, 6 pushes",
     solution: "DLLDLLUULLDDRUUULLLURURR",
     text: `
@@ -71,7 +82,7 @@ const LEVELS = [
       #  4  0  2  2`,
   },
   {
-    name: "Level 7",
+    name: "Level 8",
     info: "5x5, 10 pushes",
     solution: "LLURDLDDLUULDRRRRULLUURRRUURRRDDDDR",
     text: `
@@ -82,7 +93,7 @@ const LEVELS = [
       0  0  2  3  3SD`,
   },
   {
-    name: "Level 8",
+    name: "Level 9",
     info: "5x5, 7 pushes",
     solution: "DLLLUUULLLDDDRRRUUUUULDDDDLLUUUURRRRDRUU",
     text: `
@@ -93,7 +104,7 @@ const LEVELS = [
       1  0  1  4  1`,
   },
   {
-    name: "Level 9",
+    name: "Level 10",
     info: "5x5, 20 pushes",
     solution: "URRUUUDLURULDRUUUDLUURURUURRULDRDLLLDRULDRDLUURURULLUR",
     text: `
@@ -104,7 +115,7 @@ const LEVELS = [
       2SD 1  #  3  #`,
   },
   {
-    name: "Level 10",
+    name: "Level 11",
     info: "6x6, 11 pushes",
     solution: "UUUUUUURURDRDDDDDDRRRURRULUUUUR",
     text: `
@@ -116,7 +127,7 @@ const LEVELS = [
       1SD #  0  1  5  0`,
   },
   {
-    name: "Level 11",
+    name: "Level 12",
     info: "6x6, 12 pushes",
     solution: "UURUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
@@ -128,7 +139,7 @@ const LEVELS = [
       0SD #  #  #  #  #`,
   },
   {
-    name: "Level 12",
+    name: "Level 13",
     info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
@@ -139,7 +150,7 @@ const LEVELS = [
       0  1  3  0  #`,
   },
   {
-    name: "Level 13",
+    name: "Level 14",
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
@@ -150,7 +161,7 @@ const LEVELS = [
       0SD #  0  0  0`,
   },
   {
-    name: "Level 14",
+    name: "Level 15",
     info: "5x5, 18 pushes",
     solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRU",
     text: `

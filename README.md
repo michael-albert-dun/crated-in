@@ -5,10 +5,12 @@ A box-manipulation puzzle on a grid.
 This is an early design sketch. There is a rules engine, headless experiments,
 a play UI (`index.html`) and a plain test UI (`test.html`).
 
-The fiction: you're trapped in a room of crates with a way out. You can clamber
-up or down one crate at a time, but a drop of two or more is too far. Push
-against a stack you can't climb and its top crate copies itself, the copies
-float gently down onto the neighbouring stacks, and you wind up a level higher.
+The fiction: the door slams behind you and you're crated in, with a lit doorway
+on the far side as the only way on. You have a wand that is supposed to move
+crates for you but isn't working properly: all it does is destroy the top of a
+nearby stack you can't climb and put copies down on its neighbours (yours
+included, so you wind up a level higher). You can clamber up or down one
+crate at a time, but a drop of two or more is too far.
 
 ## Run Locally
 
@@ -19,22 +21,30 @@ games:
 python3 -m http.server 4176 --bind 127.0.0.1
 ```
 
-Then open http://127.0.0.1:4176/ for the play UI (`?level=3` jumps to a level) or
-http://127.0.0.1:4176/test.html for the test UI.
+Then open http://127.0.0.1:4176/ for the home screen (`?level=3` jumps straight to
+a level) or http://127.0.0.1:4176/test.html for the test UI.
 
 ### Play UI (`index.html`)
 
 The room is drawn straight down, lit from the top left. Height shows in the
-stencilled numeral on each crate lid (an option) and in shadows: every stack and
-wall casts one down and to the right onto the floor and onto lower crates, longer
-the bigger the height difference. The floor is drawn as crate tops at height 0
+stencilled numeral on each crate lid (always shown, since it is essential); lids have a light top-left and
+dark bottom-right bevel and no outline. (An earlier stage with cast shadows was
+dropped as distracting.) The floor is drawn as crate tops at height 0
 (unnumbered), so when the bottom layer sinks away it is the floor that goes, and
-all lids share one colour. The boundary is a half-width wall, drawn only beside
-open floor (edge wall cells are their own boundary), so rooms need not look
-square. The exit is a lit doorway with chevrons, either a gap in the boundary or
-a tunnel through wall that connects to it. The entry gate is a cool blue-grey
-doorway with chevrons pointing in: when a room starts (also on restart) you walk
-in through it and the door slides shut behind you, staying shut for that room.
+all lids share one colour.
+
+Walls come in two kinds. Anything off the board, or wall joined through wall to
+the board's edge, is "outside" and drawn as the dark backdrop. Each open cell
+next to outside gets a half-width edge of plain dark grey (with a faint speckle)
+on that side, plus a half-by-half block on corners where both neighbours and the
+diagonal are outside, so rooms need not look square and the silhouette has no
+notches. A free-standing wall cell is instead a dark grey octagonal pillar (black
+inset, light eight-pointed star) on a sky-blue void tile, so it can't be
+mistaken for floor. The exit is a lit doorway with chevrons, either a gap in the
+edge or a tunnel through wall that connects to it. The entry gate is a cool
+blue-grey doorway with chevrons pointing in: when a room starts (also on
+restart) you walk in through it and it slides shut behind you as two leaves of
+the same grey, so once closed it is just wall.
 
 An earlier look used a perspective camera over the middle of the room, so tall
 things scaled up and leaned away from the centre. It is still in `src/game.js`
@@ -42,22 +52,27 @@ behind `PERSPECTIVE`, but tall walls and stacks hid too much of the cells beside
 them.
 
 Moves are animated: a push lifts the top crate, splits it, and the copies drift
-down onto the neighbours; reflooring sinks the whole floor; a fatal drop plays
+down onto the neighbours; a fatal drop plays
 as a fall; winning is stepping out through the doorway, which carries you straight on into the next room. Starting the next move
 finishes any running animation, and `prefers-reduced-motion` skips them. Arrow
 keys or WASD move, tapping a neighbouring square works on touch, `z` undoes,
-`r` restarts and `c` peeks at a shortest solution. Options (under "Levels and
-Settings") are the stencilled numbers, gentle mode and "sink the floor"; solved
-levels are remembered in local storage.
+`r` restarts, `c` peeks at a shortest solution and `m` (or Escape, or the Menu
+button) goes back to the home screen.
+
+The home screen is the index page: a short story, how to play, the settings
+(just gentle mode) and a grid of level
+tiles. Solved levels show a tick and the first unsolved one is outlined; picking
+a tile goes straight into that level. Solved levels are remembered in local
+storage. It is one page with two screens; the address bar follows (`?level=N`
+while playing, plain at home), so the back button and reloads work.
 
 Reflooring changes no rule, since every rule depends only on height differences,
-so the UI can show it two ways. By default it is hidden: the engine still
-normalises to "lowest height is 0" (which keeps the state space finite for the
-solver), and the UI keeps an offset, the layers removed so far, that it adds
-back to every numeral, so the numbers just keep counting up. The floor tiles get
-a numeral too once the offset is above 0. The "sink the floor" option shows what
-the rule literally says instead: a slow elevator effect, with the room shaking
-while every numeral fades down by the layers removed.
+so the UI hides it: the engine still normalises to "lowest height is 0" (which
+keeps the state space finite for the solver), and the UI keeps an offset, the
+layers removed so far, that it adds back to every numeral, so the numbers just
+keep counting up. The floor tiles get a numeral too once the offset is above 0.
+(An optional "sink the floor" elevator animation, with the room shaking as every
+numeral fades down, was built and then dropped.)
 
 ### Test UI (`test.html`)
 
@@ -138,7 +153,7 @@ Levels without side letters still parse.
 - `src/engine.js`: DOM-free rules (`parseLevel`, `step`, `solve`, ...). Has a
   `module.exports` guard so Node can `require` it.
 - `tests/engine.test.js`: rules tests. Run `node --test tests/engine.test.js`.
-- `index.html`, `styles.css`, `src/game.js`: the play UI (SVG, perspective
+- `index.html`, `styles.css`, `src/game.js`: the play UI (SVG, top-down
   drawing, animation). `test.html`, `test.css`, `src/test-ui.js`: the plain test
   UI. Both keep undo as a history of snapshots. `src/levels.js` holds the rooms
   in level text format, each with its shortest known solution.
@@ -184,10 +199,14 @@ running longer it drifts to 90 to 180 move solutions that are mostly repeated
 grinding, which probably isn't fun. Score doesn't yet measure what makes a
 puzzle good (few distinct solutions, tempting dead ends), so pick by eye.
 
-The first levels in `src/levels.js` came from this generator (plus the original
-5x5 example as room 9; room 8 was regenerated when entry gates were added, since
-its start cell had no valid gate side), ordered from 4x4 rooms with 2 pushes up to 5x5 rooms
-with 14. The number of iterations is the difficulty dial.
+Level 1 in `src/levels.js` is a hand-made tutorial (a P-shaped corridor with one
+push), and Levels 1 to 3 are meant as the tutorial set. Level 3 is deliberately
+a corridor with no decisions, to show that a push raises the base height you
+stand on. The rest came from this generator (plus the original 5x5 example, and
+one room regenerated when entry gates were added because its start cell had no
+valid gate side), ordered from 4x4 rooms with 2 pushes up to 5x5 rooms with 18.
+Two rooms were eased by turning a crate into a wall. The number of iterations is
+the difficulty dial.
 
 ## Finding levels
 
@@ -205,3 +224,11 @@ unused cells, keeps initial heights at 5 or below (pushes can build higher in
 play), and writes `src/candidates.js`. `test.html` lists those after the real
 levels as "Candidate N" for review; promote a good one by copying it into
 `src/levels.js`. The tuning weights are guesses; play the candidates and adjust.
+
+A design preference for the finder and for hand edits: alcove decoys, meaning
+protruding cells that no shortest solution uses and that only add somewhere to
+wander into and get stuck, count against a level. Several levels had them and
+were tidied by turning the crate into a wall (`rate-levels.js` shows the
+"unused" cells that give them away). The finder's `unused` measure already
+penalises them in general; a stricter version could specifically target dead-end
+protrusions.

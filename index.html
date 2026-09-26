@@ -4,49 +4,78 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Crated In</title>
-    <link rel="stylesheet" href="styles.css?v=20260926f" />
+    <link rel="stylesheet" href="styles.css?v=20260927c" />
     <script defer src="src/engine.js?v=20260926f"></script>
-    <script defer src="src/levels.js?v=20260926l"></script>
-    <script defer src="src/game.js?v=20260926r"></script>
+    <script defer src="src/levels.js?v=20260927d"></script>
+    <script defer src="src/game.js?v=20260927r"></script>
   </head>
   <body>
     <main>
-      <header>
-        <h1>Crated In</h1>
-        <p id="room-title"></p>
-      </header>
+      <!-- Home screen: the story, how to play, settings, then the level grid. -->
+      <section id="menu-screen">
+        <header>
+          <h1>Crated In</h1>
+        </header>
 
-      <div class="room">
-        <svg id="board" role="img" aria-label="The room, seen from above"></svg>
-      </div>
+        <div class="story">
+          <p>
+            The door slams behind you, and now you're crated in. The only way is on, through the lit doorway
+            on the far side.
+          </p>
+          <p>
+            It should be easy: you have a wand that's supposed to move crates around for you. But it doesn't
+            seem to be working properly! All it does is destroy the top of a nearby stack that you can't climb
+            and put copies down on its neighbours.
+          </p>
+        </div>
 
-      <p id="message" role="status"></p>
+        <h2>How to play</h2>
+        <ul class="howto">
+          <li>
+            <strong>Climb.</strong> You can clamber up or down one crate at a time. Dropping down two or more
+            is too far.
+          </li>
+          <li>
+            <strong>Point.</strong> Point the wand at a stack that's too tall to climb (by pushing against it).
+            The crate on top is destroyed, but a copy of it drifts down onto each neighbouring stack,
+            including yours, so you're lifted a level.
+          </li>
+          <li>
+            <strong>Move.</strong> Use arrow keys or WASD, or tap a neighbouring square. <kbd>z</kbd> undoes,
+            <kbd>r</kbd> restarts, <kbd>c</kbd> peeks at a solution and <kbd>m</kbd> comes back here.
+          </li>
+        </ul>
 
-      <div class="bar">
-        <button type="button" id="undo">Undo (z)</button>
-        <button type="button" id="restart">Restart (r)</button>
-        <span id="counts"></span>
-      </div>
+        <h2>Settings</h2>
+        <div class="settings">
+          <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
+        </div>
 
-      <p id="cheat-status" role="status"></p>
+        <h2>Levels <span id="progress"></span></h2>
+        <div id="level-grid" role="list"></div>
+      </section>
 
-      <details class="more">
-        <summary>Levels and Settings</summary>
-        <label>
-          Level
-          <select id="room-select"></select>
-        </label>
-        <label><input type="checkbox" id="opt-numbers" /> Stencil the stack height on each crate</label>
-        <label><input type="checkbox" id="opt-sink" /> Sink the floor when every stack is at least 1 high (otherwise the numbers just keep counting up)</label>
-        <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
-        <p class="tip">
-          You're trapped in a room and want the way out (the lit doorway; stepping through it leads on to the next room). You can clamber up or
-          down one crate at a time. Dropping down two or more is too far. Push against a stack
-          that's too tall to climb and its top crate copies itself, the copies drift down onto the
-          neighbouring stacks, and you're lifted a level. Move with arrow keys or WASD, or tap a
-          neighbouring square. <kbd>c</kbd> peeks at a solution.
-        </p>
-      </details>
+      <!-- Play screen: one room at a time. -->
+      <section id="play-screen" hidden>
+        <header>
+          <button type="button" id="menu-button">&larr; Menu</button>
+          <p id="room-title"></p>
+        </header>
+
+        <div class="room">
+          <svg id="board" role="img" aria-label="The room, seen from above"></svg>
+        </div>
+
+        <p id="message" role="status"></p>
+
+        <div class="bar">
+          <button type="button" id="undo">Undo (z)</button>
+          <button type="button" id="restart">Restart (r)</button>
+          <span id="counts"></span>
+        </div>
+
+        <p id="cheat-status" role="status"></p>
+      </section>
     </main>
   </body>
 </html>
