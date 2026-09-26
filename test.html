@@ -3,51 +3,60 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Crated In (test UI)</title>
-    <link rel="stylesheet" href="test.css?v=20260926f" />
+    <title>Crated In (test)</title>
+    <link rel="stylesheet" href="styles.css?v=20260927d" />
     <script defer src="src/engine.js?v=20260926f"></script>
-    <script defer src="src/levels.js?v=20260927i"></script>
+    <script defer src="src/levels.js?v=20260927n"></script>
     <script defer src="src/candidates.js?v=20260926e"></script>
-    <script defer src="src/test-ui.js?v=20260926h"></script>
+    <script defer src="src/test-config.js?v=20260927a"></script>
+    <script defer src="src/game.js?v=20260927s"></script>
   </head>
   <body>
     <main>
-      <h1>Crated In <small>(test UI)</small></h1>
-      <p class="intro">
-        Walk onto the star, then step out through the gold-marked side. You can step to a neighbour that is at most 1 higher or lower.
-        Bump into a pile 2 or more higher and its top block spreads out to its neighbours,
-        including yours.
-      </p>
+      <!-- Same game as index.html, with test tools: candidates after the real levels, move hints, cheat button. -->
+      <section id="menu-screen">
+        <header>
+          <h1>Crated In <small>(test)</small></h1>
+        </header>
 
-      <div class="controls">
-        <label>
-          Level
-          <select id="level-select"></select>
-        </label>
-        <button type="button" id="undo">Undo (z)</button>
-        <button type="button" id="restart">Restart (r)</button>
-        <button type="button" id="cheat" aria-pressed="false">Cheat (c)</button>
-      </div>
+        <p class="howto">
+          Same game as the main page, plus the candidate levels from the finder (dashed tiles), colour hints on the
+          squares next to you, and a cheat button. Progress and settings here are kept separately.
+        </p>
 
-      <div class="board-wrap">
-        <svg id="board" role="img" aria-label="Puzzle board"></svg>
-      </div>
+        <h2>Test options</h2>
+        <div class="settings">
+          <label><input type="checkbox" id="opt-hints" /> Show move hints (<span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
+          <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
+          <label><input type="checkbox" id="opt-enough" /> Just-enough push (one bump spreads until you can walk)</label>
+        </div>
 
-      <p id="status" role="status"></p>
-      <p id="counts"></p>
-      <p id="cheat-status" role="status"></p>
+        <h2>Levels <span id="progress"></span></h2>
+        <div id="level-grid" role="list"></div>
+      </section>
 
-      <fieldset class="options">
-        <legend>Test options</legend>
-        <label><input type="checkbox" id="opt-hints" /> Show move hints</label>
-        <label><input type="checkbox" id="opt-soft" /> Soft mode (big drops are blocked, not fatal)</label>
-        <label><input type="checkbox" id="opt-enough" /> Just-enough push (one bump spreads until you can walk)</label>
-      </fieldset>
+      <section id="play-screen" hidden>
+        <header>
+          <button type="button" id="menu-button">&larr; Menu</button>
+          <select id="room-select" aria-label="Level"></select>
+        </header>
+        <p id="room-title"></p>
 
-      <p class="legend">
-        Move: arrow keys, WASD, or tap a neighbouring square. Hints: <span class="key walk">walk</span>
-        <span class="key push">push</span> <span class="key drop">drop</span>
-      </p>
+        <div class="room">
+          <svg id="board" role="img" aria-label="The room, seen from above"></svg>
+        </div>
+
+        <p id="message" role="status"></p>
+
+        <div class="bar">
+          <button type="button" id="undo">Undo (z)</button>
+          <button type="button" id="restart">Restart (r)</button>
+          <button type="button" id="cheat" aria-pressed="false">Cheat (c)</button>
+          <span id="counts"></span>
+        </div>
+
+        <p id="cheat-status" role="status"></p>
+      </section>
     </main>
   </body>
 </html>

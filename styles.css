@@ -216,3 +216,42 @@ h2 {
 #menu-button {
   padding: 0.3rem 0.7rem;
 }
+
+/* Test page extras. */
+.howto {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.level-tile.candidate {
+  border-style: dashed;
+}
+
+#cheat[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.key {
+  padding: 0 0.35em;
+  border-radius: 3px;
+  color: #10100f;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.key.walk {
+  background: #009e73;
+}
+
+.key.push {
+  background: #e69f00;
+}
+
+.key.drop {
+  background: #d55e00;
+}
+
+#room-title:empty {
+  display: none;
+}

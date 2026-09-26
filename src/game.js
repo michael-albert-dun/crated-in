@@ -16,8 +16,13 @@ const CAMERA = 40; // perspective mode only: camera height above the floor in cr
 const WALL_LAYERS = 4; // perspective mode only: walls are "infinitely" tall; drawn this tall to limit how much they hide
 const PAD = CELL / 2; // thickness of the boundary wall around the room
 const SVG_NS = "http://www.w3.org/2000/svg";
-const SETTINGS_KEY = "crated-in.play.v1";
-const PROGRESS_KEY = "crated-in.solved.v1";
+// test.html runs this same game with extra tools (see src/test-config.js): the
+// candidate levels appended, colour hints on the neighbouring squares, a level
+// menu and a cheat button. Its saved settings and progress are kept separate.
+const TEST = window.CRATED_TEST || null;
+const SETTINGS_KEY = TEST ? "crated-in.test.play.v1" : "crated-in.play.v1";
+const PROGRESS_KEY = TEST ? "crated-in.test.solved.v1" : "crated-in.solved.v1";
+const HINT_COLORS = { walk: "#009e73", push: "#e69f00", drop: "#d55e00" }; // Okabe-Ito
 const KEY_DIRS = {
   ArrowUp: 0, w: 0, W: 0,
   ArrowDown: 1, s: 1, S: 1,
@@ -40,7 +45,7 @@ const state = {
   // Each entry is a full snapshot, so undo is just popping.
   history: [],
   current: null,
-  settings: { gentle: false, justEnough: false },
+  settings: { gentle: false, justEnough: false, hints: true },
   solved: new Set(),
   cheat: false,
 };
@@ -74,6 +79,11 @@ const elements = {
   playScreen: document.querySelector("#play-screen"),
   menuButton: document.querySelector("#menu-button"),
   grid: document.querySelector("#level-grid"),
+  // Test page only (null on the main page).
+  select: document.querySelector("#room-select"),
+  cheat: document.querySelector("#cheat"),
+  hints: document.querySelector("#opt-hints"),
+  enough: document.querySelector("#opt-enough"),
   progress: document.querySelector("#progress"),
   gentle: document.querySelector("#opt-gentle"),
 };
@@ -608,6 +618,15 @@ function render() {
       if (n < 0) return;
       const X0 = cellX(n % level.width);
       const Y0 = cellY(Math.floor(n / level.width));
+      if (TEST && state.settings.hints) {
+        // What a move there would do: walk, push (2 or more higher) or fatal drop.
+        const gap = current.game.h[n] - current.game.h[pos];
+        const kind = gap >= 2 ? "push" : gap <= -2 ? "drop" : "walk";
+        svgEl("rect", {
+          x: X0 + 3, y: Y0 + 3, width: CELL - 6, height: CELL - 6, rx: 6, fill: HINT_COLORS[kind], "fill-opacity": 0.28,
+          stroke: HINT_COLORS[kind], "stroke-width": 4, "pointer-events": "none",
+        }, svg);
+      }
       addTapPad(svg, [X0, Y0, X0 + CELL, Y0 + CELL], view.h[n], d);
     });
     if (exit && pos === level.target) {
@@ -1009,7 +1028,12 @@ function updateHud() {
   const cur = state.current;
   const settled = !anim;
   const total = LEVELS.length;
-  elements.title.textContent = `Level ${state.levelIndex + 1} of ${total}`;
+  const level = LEVELS[state.levelIndex];
+  elements.title.textContent = TEST
+    ? `${level.name} (${state.levelIndex + 1} of ${total})${level.info ? ` · ${level.info}` : ""}`
+    : `Level ${state.levelIndex + 1} of ${total}`;
+  if (elements.select) elements.select.value = String(state.levelIndex);
+  if (elements.cheat) elements.cheat.setAttribute("aria-pressed", String(state.cheat));
   elements.counts.textContent = `Moves ${cur.moves}  ·  Pushes ${cur.pushes}`;
   // Hold back the outcome until the animation has played.
   elements.message.textContent = settled || cur.status === "playing" ? cur.message : "";
@@ -1044,7 +1068,8 @@ function buildGrid() {
     const solved = state.solved.has(i);
     const tile = document.createElement("button");
     tile.type = "button";
-    tile.className = `level-tile${solved ? " solved" : ""}${i === next ? " next" : ""}`;
+    const candidate = TEST && i >= TEST.realCount;
+    tile.className = `level-tile${solved ? " solved" : ""}${i === next ? " next" : ""}${candidate ? " candidate" : ""}`;
     tile.setAttribute("role", "listitem");
     tile.setAttribute("aria-label", `${level.name}${solved ? ", solved" : ""}`);
     tile.textContent = String(i + 1);
@@ -1092,6 +1117,26 @@ function route() {
 function init() {
   loadStorage();
   elements.gentle.checked = state.settings.gentle;
+  if (TEST) {
+    elements.hints.checked = state.settings.hints;
+    elements.enough.checked = state.settings.justEnough;
+    LEVELS.forEach((level, i) => elements.select.appendChild(new Option(level.name, String(i))));
+    elements.select.addEventListener("change", () => openLevel(Number(elements.select.value), "push"));
+    elements.cheat.addEventListener("click", () => {
+      state.cheat = !state.cheat;
+      updateHud();
+    });
+    elements.hints.addEventListener("change", () => {
+      state.settings.hints = elements.hints.checked;
+      saveStorage();
+      render();
+    });
+    elements.enough.addEventListener("change", () => {
+      state.settings.justEnough = elements.enough.checked;
+      saveStorage();
+      updateHud();
+    });
+  }
 
   elements.menuButton.addEventListener("click", () => showMenu("push"));
   window.addEventListener("popstate", route);

@@ -3,7 +3,7 @@
 A box-manipulation puzzle on a grid.
 
 This is an early design sketch. There is a rules engine, headless experiments,
-a play UI (`index.html`) and a plain test UI (`test.html`).
+a play UI (`index.html`) and a test page (`test.html`, the same game with test tools).
 
 The fiction: the door slams behind you and you're crated in; across the room a
 doorway glows, your only way out. You have a wand that is supposed to move
@@ -76,15 +76,21 @@ numeral fades down, was built and then dropped.)
 
 ### Test UI (`test.html`)
 
-Plain squares with heights (it doesn't draw the entry gate). Move with arrow keys or WASD, or tap a
-neighbouring square. `z` undoes and `r` restarts. The test options switch on
-move hints (green walk, amber push, red fatal drop), soft mode and the
-just-enough push variant; they are remembered in local storage.
+The same game as the main page (same drawing, animations, home screen and
+controls), with extra tools switched on by `src/test-config.js` setting
+`window.CRATED_TEST` before `game.js` loads: the candidate levels from the finder
+are appended after the real ones (dashed tiles in the grid, "Candidate N" in the
+level menu), and the play screen gains a level dropdown, a level info line (size,
+pushes and the finder's measures) and a Cheat button (`c` does the same). The
+test options are move hints, which outline each neighbouring square green for a
+walk, amber for a push and red for a fatal drop, plus gentle mode and the
+just-enough push variant. Its settings and solved ticks are stored separately
+from the main page (`crated-in.test.*` keys).
 
 `c` toggles cheat mode: below the board it says whether the position can still
-be won, the next move of a shortest solution (also marked with an arrow on the
-board) and how many moves remain, or a red "No longer solvable". It re-solves
-after every move, using the engine's `solve(level, { from: state })`.
+be won, the next move of a shortest solution and how many moves remain, or "This
+room can't be escaped any more". It re-solves after every move, using the
+engine's `solve(level, { from: state })`.
 
 ## The board
 
@@ -154,8 +160,8 @@ Levels without side letters still parse.
   `module.exports` guard so Node can `require` it.
 - `tests/engine.test.js`: rules tests. Run `node --test tests/engine.test.js`.
 - `index.html`, `styles.css`, `src/game.js`: the play UI (SVG, top-down
-  drawing, animation). `test.html`, `test.css`, `src/test-ui.js`: the plain test
-  UI. Both keep undo as a history of snapshots. `src/levels.js` holds the rooms
+  drawing, animation) with its home screen. `test.html` and `src/test-config.js`:
+  the same game with test tools (see above). Undo is a history of snapshots. `src/levels.js` holds the rooms
   in level text format, each with its shortest known solution.
 - `experiments/generate.js`: hill-climbing level generator (see below).
 - `experiments/explore.js`: random boards solved by breadth-first search over

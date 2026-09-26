@@ -128,15 +128,14 @@ const LEVELS = [
   },
   {
     name: "Level 12",
-    info: "6x6, 12 pushes",
-    solution: "UURUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
+    info: "6x5, 12 pushes",
+    solution: "URUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
       5  2  #  #  5TU #
-      0  2  #  3  0  4
+      0  2  #  #  0  4
       0  3  #  #  1  1
       2  2  0  3  4  #
-      1  #  3  0  0  #
-      0SD #  #  #  #  #`,
+      1SL #  3  0  0  #`,
   },
   {
     name: "Level 13",
@@ -154,21 +153,20 @@ const LEVELS = [
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
-      3  #  0  1  1
+      #  #  0  1  1
       0TL 1  3  2  2
-      #  3  1  #  0
-      2  2  0  4  0
-      0SD #  0  0  0`,
+      #  3  1  #  #
+      2  2  0  #  #
+      0SD #  #  #  #`,
   },
   {
     name: "Level 15",
-    info: "5x5, 18 pushes",
+    info: "5x4, 18 pushes",
     solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRU",
     text: `
       #  1  2  3  4SR
       #  2  3  0  #
       #  4  #  1  0TU
-      2  0  1  4  5
-      #  1  #  #  2`,
+      #  0  1  4  5`,
   },
 ];
