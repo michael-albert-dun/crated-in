@@ -124,4 +124,59 @@ const CANDIDATES = [
       1  4  3  #  0  3
       #  #  0  0  5  1SR`,
   },
+  {
+    name: "Long 1",
+    info: "5x5, 107 moves, 23 pushes, 3 ways, 11 traps, 0% unused",
+    solution: "UULLDLDULLDRULLLRDLLUDDDRRRUUULLLLRRUULLLDRRDDLLLUURRDDLLLLURRUULLLDRRDDLLLLUURRDDDDLLLUUUURUURRDDDDLLLLLUU",
+    text: `
+      5  1  1  1  2
+      #  1  1  #  1
+      #  3  2  0  2SR
+      0TU 1  #  #  0
+      0  2  1  0  1`,
+  },
+  {
+    name: "Long 2",
+    info: "5x5, 106 moves, 27 pushes, 3 ways, 7 traps, 0% unused",
+    solution: "UURRRRRDDDDLLUURRDDDDDUULLDDRUURRDDDLLUURRDDDDLUULLDDDRUURRDDDLLUURULDDDRRDDDULLDDDRRRUULLDRULDDDDDDDLDLLU",
+    text: `
+      #  #  0  1  #
+      2  2  1  1  0
+      0SL #  2  #  0
+      #  0  2  1  4
+      5TU 3  #  2  1`,
+  },
+  {
+    name: "Long 3",
+    info: "5x5, 80 moves, 24 pushes, 6 ways, 12 traps, 0% unused",
+    solution: "LULDRURRURRURDDLLLLUURRDDLLLRUUULLDDDRRUUUUUULDLURDLLLDLULDRUULLLLDDRUULLLLLLDDL",
+    text: `
+      3  0  3  0  2
+      5TL #  3  3  0
+      #  0  3  1  3
+      1  2  #  1  #
+      1  3  2SD 0  #`,
+  },
+  {
+    name: "Long 5",
+    info: "5x5, 66 moves, 15 pushes, 2 ways, 14 traps, 5% unused",
+    solution: "RRUULDDLLULLRURDDLLUULLURDRUUULRUUULLLLLLDDDRRRUUULLLRDDDLLLUUUULL",
+    text: `
+      0TL 2  4  0  0
+      #  0  #  #  0
+      #  1  #  3  0
+      0  4  0  2  0
+      4  #  0SL 0  0`,
+  },
+  {
+    name: "Long 7",
+    info: "5x5, 53 moves, 19 pushes, 9 ways, 8 traps, 10% unused",
+    solution: "ULLLRUUUDLLULLUURRRRUULLRDDLLDRRURURLDRURUURRDDRRRRUR",
+    text: `
+      0  #  #  1  5
+      4  2  2  #  1TR
+      5  #  1  0  5
+      0  2  3  #  4
+      1  0  4  0  0SD`,
+  },
 ];

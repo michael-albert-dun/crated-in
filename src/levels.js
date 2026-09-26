@@ -94,6 +94,17 @@ const LEVELS = [
   },
   {
     name: "Level 9",
+    info: "5x5, 20 pushes",
+    solution: "URRUUUDLURULDRUUUDLUURURUURRULDRDLLLDRULDRDLUURURULLUR",
+    text: `
+      #  #  #  0TR #
+      0  4  1  2  0
+      4  3  0  3  2
+      1  3  #  0  2
+      2SD 1  #  3  #`,
+  },
+  {
+    name: "Level 10",
     info: "6x6, 11 pushes",
     solution: "UUUUUUURURDRDDDDDDRRRURRULUUUUR",
     text: `
@@ -105,7 +116,7 @@ const LEVELS = [
       1SD #  0  1  5  0`,
   },
   {
-    name: "Level 10",
+    name: "Level 11",
     info: "6x6, 12 pushes",
     solution: "UURUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
@@ -117,7 +128,7 @@ const LEVELS = [
       0SD #  #  #  #  #`,
   },
   {
-    name: "Level 11",
+    name: "Level 12",
     info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
@@ -128,7 +139,7 @@ const LEVELS = [
       0  1  3  0  #`,
   },
   {
-    name: "Level 12",
+    name: "Level 13",
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
@@ -137,5 +148,16 @@ const LEVELS = [
       #  3  1  #  0
       2  2  0  4  0
       0SD #  0  0  0`,
+  },
+  {
+    name: "Level 14",
+    info: "5x5, 18 pushes",
+    solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRU",
+    text: `
+      #  1  2  3  4SR
+      #  2  3  0  #
+      #  4  #  1  0TU
+      2  0  1  4  5
+      #  1  #  #  2`,
   },
 ];

@@ -40,7 +40,7 @@ const state = {
   // Each entry is a full snapshot, so undo is just popping.
   history: [],
   current: null,
-  settings: { numbers: true, gentle: false, justEnough: false },
+  settings: { numbers: true, gentle: false, justEnough: false, sinkFloor: false },
   solved: new Set(),
   cheat: false,
 };
@@ -53,6 +53,12 @@ const view = {
   ghosts: [],
   glow: 0,
   entryClosed: 1, // 0 = entry doorway open, 1 = door shut
+  // Reflooring shifts every height down together, which changes no rule (they all
+  // depend on height differences). By default the numbers just keep counting up:
+  // `offset` is the number of layers removed so far, added back for display.
+  offset: 0,
+  sink: null, // during the optional "sink the floor" animation: { t, k }
+  shake: { x: 0, y: 0 }, // that animation shakes the whole room
 };
 let geo = null;
 let anim = null;
@@ -68,6 +74,7 @@ const elements = {
   select: document.querySelector("#room-select"),
   numbers: document.querySelector("#opt-numbers"),
   gentle: document.querySelector("#opt-gentle"),
+  sink: document.querySelector("#opt-sink"),
 };
 
 // ---------------------------------------------------------------- storage
@@ -223,10 +230,10 @@ function drawLidMarks(g, at, style, bevel = 1) {
   line(g, at(0.85, 0.15), at(0.15, 0.85), style.line, 2);
 }
 
-function drawNumber(g, at, k, value, opacity) {
+function drawNumber(g, at, k, value, opacity, dy = 0) {
   const [x, y] = at(0.28, 0.32);
   const label = svgEl("text", {
-    x, y, "font-size": 21 * k, "font-weight": 900, "text-anchor": "middle", "dominant-baseline": "central",
+    x, y: y + dy, "font-size": (value >= 10 ? 17 : 21) * k, "font-weight": 900, "text-anchor": "middle", "dominant-baseline": "central",
     "font-family": "Impact, 'Arial Black', 'Helvetica Neue', sans-serif", fill: "#3b2a12", opacity,
   }, g);
   label.textContent = String(value);
@@ -276,6 +283,23 @@ function drawFloorTile(g, br, bc) {
   const at = (u, v) => [X0 + CELL * u, Y0 + CELL * v];
   poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], LID_FILL, CRATE.stroke);
   drawLidMarks(g, at, CRATE, 0.5); // floor: a fainter bevel than the stacks
+  // Floor is unnumbered until the whole room has been lifted; then it shows its height too.
+  if (state.settings.numbers && view.offset > 0) drawNumber(g, at, 1, view.offset, 0.8);
+}
+
+// The number stencilled on a lid: the height plus the display offset. In the
+// optional sink animation each number fades down by `sink.k` instead.
+function drawStackNumber(g, at, hd) {
+  const shown = Math.round(hd) + view.offset;
+  const k = scale(hd);
+  const sink = view.sink;
+  if (!sink) {
+    drawNumber(g, at, k, shown, 0.8);
+    return;
+  }
+  const e = easeInOut(sink.t);
+  drawNumber(g, at, k, shown, 0.8 * (1 - e), 5 * e);
+  if (shown - sink.k > 0) drawNumber(g, at, k, shown - sink.k, 0.8 * e, -5 * (1 - e));
 }
 
 function drawStack(g, i, hd) {
@@ -288,7 +312,7 @@ function drawStack(g, i, hd) {
   for (let j = PERSPECTIVE ? 0 : Math.max(0, layers - 1); j < layers; j += 1) {
     at = drawCrate(g, X0, Y0, j, Math.min(j + 1, hd), j === layers - 1);
   }
-  if (at && state.settings.numbers && hd > 0.5) drawNumber(g, at, scale(hd), Math.round(hd), 0.8);
+  if (at && state.settings.numbers && hd > 0.5) drawStackNumber(g, at, hd);
 }
 
 function drawWall(g, X0, Y0, X1, Y1) {
@@ -417,6 +441,11 @@ function render() {
 
   const floor = svgEl("g", {}, svg);
   const scene = svgEl("g", {}, svg);
+  if (view.shake.x || view.shake.y) {
+    const shake = `translate(${view.shake.x.toFixed(2)} ${view.shake.y.toFixed(2)})`;
+    floor.setAttribute("transform", shake);
+    scene.setAttribute("transform", shake);
+  }
   const exit = gateInfo(level.target, level.exitDir);
   const entry = gateInfo(level.start, level.startDir);
   const gates = [exit, entry].filter(Boolean);
@@ -745,15 +774,21 @@ function pushPhases(prevGame, out, d) {
     for (const n of nbrs) hs[n] += 1;
   }
 
-  if (out.reflooded > 0) {
-    const after = Float64Array.from(out.state.h);
+  // Reflooring: by default nothing to animate (the numbers just keep counting
+  // up, via the offset). The optional version is a slow elevator: the room shakes
+  // and each number fades down by the layers removed.
+  if (out.reflooded > 0 && state.settings.sinkFloor) {
     const raised = Float64Array.from(hs);
+    const k = out.reflooded;
     phases.push({
-      ms: 380,
+      ms: 1200,
       update(t) {
-        for (let i = 0; i < raised.length; i += 1) view.h[i] = level.wall[i] ? 0 : lerp(raised[i], after[i], easeInOut(t));
+        view.h.set(raised);
         view.ghosts = [];
         stand(0);
+        view.sink = t < 1 ? { t, k } : null;
+        const amp = t < 1 ? 2.6 * Math.sin(Math.PI * Math.min(1, t * 1.1)) : 0;
+        view.shake = { x: Math.sin(t * 70) * amp, y: Math.cos(t * 53) * amp * 0.6 };
       },
     });
   }
@@ -770,6 +805,9 @@ function syncView() {
   view.ghosts = [];
   view.glow = status === "won" ? 1 : 0;
   view.entryClosed = 1;
+  view.offset = state.settings.sinkFloor ? 0 : state.current.offset;
+  view.sink = null;
+  view.shake = { x: 0, y: 0 };
   Object.assign(pl, {
     x: c.x, y: c.y, base: game.h[game.pos], z: game.h[game.pos],
     alpha: status === "playing" ? 1 : 0, scale: 1, leanX: 0, leanY: 0,
@@ -792,6 +830,7 @@ function restart() {
     game: createState(state.level),
     moves: 0,
     pushes: 0,
+    offset: 0,
     status: "playing",
     message: "",
   };
@@ -838,7 +877,7 @@ function move(d) {
     return;
   }
 
-  const next = { game: out.state, moves: cur.moves + 1, pushes: cur.pushes, status: "playing", message: "" };
+  const next = { game: out.state, moves: cur.moves + 1, pushes: cur.pushes, offset: cur.offset + (out.reflooded || 0), status: "playing", message: "" };
   let phases;
   if (out.result === "pushed") {
     next.pushes += 1;
@@ -907,6 +946,7 @@ function init() {
   });
   elements.numbers.checked = state.settings.numbers;
   elements.gentle.checked = state.settings.gentle;
+  elements.sink.checked = state.settings.sinkFloor;
 
   elements.select.addEventListener("change", () => loadLevel(Number(elements.select.value)));
   elements.undo.addEventListener("click", undo);
@@ -914,6 +954,13 @@ function init() {
   elements.numbers.addEventListener("change", () => {
     state.settings.numbers = elements.numbers.checked;
     saveStorage();
+    render();
+  });
+  elements.sink.addEventListener("change", () => {
+    finishAnimation();
+    state.settings.sinkFloor = elements.sink.checked;
+    saveStorage();
+    syncView();
     render();
   });
   elements.gentle.addEventListener("change", () => {

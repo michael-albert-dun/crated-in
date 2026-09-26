@@ -47,8 +47,17 @@ as a fall; winning is stepping out through the doorway, which carries you straig
 finishes any running animation, and `prefers-reduced-motion` skips them. Arrow
 keys or WASD move, tapping a neighbouring square works on touch, `z` undoes,
 `r` restarts and `c` peeks at a shortest solution. Options (under "Levels and
-Settings") are the stencilled numbers and gentle mode; solved rooms are
-remembered in local storage.
+Settings") are the stencilled numbers, gentle mode and "sink the floor"; solved
+levels are remembered in local storage.
+
+Reflooring changes no rule, since every rule depends only on height differences,
+so the UI can show it two ways. By default it is hidden: the engine still
+normalises to "lowest height is 0" (which keeps the state space finite for the
+solver), and the UI keeps an offset, the layers removed so far, that it adds
+back to every numeral, so the numbers just keep counting up. The floor tiles get
+a numeral too once the offset is above 0. The "sink the floor" option shows what
+the rule literally says instead: a slow elevator effect, with the room shaking
+while every numeral fades down by the layers removed.
 
 ### Test UI (`test.html`)
 
