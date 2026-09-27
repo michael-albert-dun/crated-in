@@ -277,4 +277,40 @@ const CANDIDATES = [
       0  0  4  5  1
       0S  5  #  0  E`,
   },
+  {
+    name: "Candidate 28",
+    info: "notch3x5 (>=6 cells at height 0) 3x5, 12 pushes, 4 ways, 5 traps, 28 moves, revisit 0.68",
+    solution: "URDLDRRDRRRLDLURRURDDRDRRRDR",
+    text: `
+      #  0  0  3  #
+      0  0  3  5  0
+      1S  4  #  0  E`,
+  },
+  {
+    name: "Candidate 29",
+    info: "notch3x5 (>=6 cells at height 0) 3x5, 13 pushes, 4 ways, 5 traps, 33 moves, revisit 0.73",
+    solution: "URRURDRLDRUURRRRULDRRRURDRURDRRDR",
+    text: `
+      #  0  1  5  #
+      1  0  3  5  0
+      0S  0  #  0  E`,
+  },
+  {
+    name: "Candidate 30",
+    info: "notch3x5 (>=6 cells at height 0) 3x5, 18 pushes, 6 ways, 8 traps, 44 moves, revisit 0.80",
+    solution: "URDURDLDDRDRRULDRDRDRLURDRDLURRRRRRULDRRRRDR",
+    text: `
+      #  0  0  4  #
+      0  0  3  4  0
+      1S  4  #  0  E`,
+  },
+  {
+    name: "Candidate 31",
+    info: "notch3x5 (>=6 cells at height 0) 3x5, 19 pushes, 8 ways, 5 traps, 49 moves, revisit 0.82",
+    solution: "RURRLDRUURRRLDLURUURRRLURDRLDRUURRRRULDRRRURDRRDR",
+    text: `
+      #  0  0  4  #
+      2  0  4  5  0
+      1S  0  #  0  E`,
+  },
 ];
