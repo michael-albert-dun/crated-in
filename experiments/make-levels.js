@@ -127,7 +127,7 @@ function main() {
       const start = formatLevel(best.level, createState(best.level));
       const tidied = tidy(start);
       const level = parseLevel(tidied.text);
-      const a = analyse(level, { maxStates: 100000 });
+      const a = analyse(level, { maxStates: 100000, maxHeight: 9 }); // match solve()'s own default height cap
       const ok = fits(a, args);
       console.log(`seed ${seed} ${size}: ${ok ? "KEEP" : "skip"} ${a ? `${a.length}m ${a.pushes}p ${a.traps}t ${a.ways}w ${a.unused}u` : "(cap)"} removed ${tidied.removed.length} trimmed ${tidied.trimmed}`);
       // Every tidied board is logged with its metrics, so --merge can filter with any window.

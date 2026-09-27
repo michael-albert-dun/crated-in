@@ -4,9 +4,18 @@
 //   const { analyse } = require("./analyse.js");
 //   analyse(level, { justEnough, maxHeight, maxStates })
 //
-// Piles above maxHeight are treated as out of bounds (no sensible solution
-// needs them); heightCuts says how many moves that dropped. Returns null if the
-// state limit was hit (the numbers would be misleading), otherwise
+// Piles above maxHeight are treated as out of bounds. Its default here is 6,
+// lower than solve()'s default of 9, on the assumption that "no sensible
+// solution needs them" -- which is sometimes false: a board can have a
+// genuinely shorter solve() path that builds a pile to 7 or 8 as a shortcut,
+// which this would then never see, silently overstating length/pushes/traps
+// and undercounting `unused`. Pass `maxHeight: 9` explicitly whenever the
+// result needs to describe the same solution solve() would actually find (in
+// particular, always when scoring or reporting on a specific board, as
+// opposed to a first cheap pass across many candidates where the tighter cap
+// is a deliberate cost-saving approximation). heightCuts says how many moves
+// the cap in effect dropped. Returns null if the state limit was hit (the
+// numbers would be misleading), otherwise
 //   solvable        the room can be escaped from the start
 //   states          reachable states
 //   length, pushes  of one shortest solution (including the final step out)

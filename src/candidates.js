@@ -111,16 +111,6 @@ const CANDIDATES = [
   },
   {
     name: "Candidate 11",
-    info: "diag4 4x4, 11 pushes, 2 ways, 9 traps, 27 moves, revisit 0.74, 0 decoys, 2 tempting",
-    solution: "UUURRRLDRURRRRULLDRURRURRUR",
-    text: `
-      #  #  2  E
-      #  0  5  2
-      4  2  5  #
-      0S  5  #  #`,
-  },
-  {
-    name: "Candidate 12",
     info: "cross3 5x3, 9 pushes, 1 way, 2 traps, 27 moves, revisit 0.67, 0 decoys",
     solution: "UULURRUULLDRRRUUUDLULUURURU",
     text: `
@@ -131,7 +121,7 @@ const CANDIDATES = [
       #  0S  #`,
   },
   {
-    name: "Candidate 13",
+    name: "Candidate 12",
     info: "cross3 5x3, 11 pushes, 2 ways, 2 traps, 31 moves, revisit 0.71, 0 decoys",
     solution: "UULURRDRDLLUDURDLLDULDRRDLULULU",
     text: `
@@ -142,7 +132,7 @@ const CANDIDATES = [
       #  3S  #`,
   },
   {
-    name: "Candidate 14",
+    name: "Candidate 13",
     info: "cross3 5x3, 13 pushes, 1 way, 1 traps, 35 moves, revisit 0.74, 0 decoys",
     solution: "UURRULLURDRDRRURDLURRRRULLDRURURU",
     text: `
@@ -153,7 +143,7 @@ const CANDIDATES = [
       #  1S  #`,
   },
   {
-    name: "Candidate 15",
+    name: "Candidate 14",
     info: "cross3 5x3, 21 pushes, 2 ways, 7 traps, 55 moves, revisit 0.84, 0 decoys",
     solution: "ULURRRULLURDRDRRURDLURRRRULLDRRRLURRDRDRLURRDRDLURURU",
     text: `
@@ -164,7 +154,7 @@ const CANDIDATES = [
       #  2S  #`,
   },
   {
-    name: "Candidate 16",
+    name: "Candidate 15",
     info: "cfg13 (3x3, edge-mid entry, off-corner exit), 21 pushes, 1 way, 7 traps, 48 moves, revisit 0.81",
     solution: "DRDDLDDDDURDDLDLDURDDLDLDURDDLDLLURDDDDLUULLDDDD",
     text: `
@@ -175,7 +165,7 @@ const CANDIDATES = [
       #  E  #  #  #`,
   },
   {
-    name: "Candidate 17",
+    name: "Candidate 16",
     info: "cfg13 (3x3, edge-mid entry, off-corner exit), 22 pushes, 1 way, 15 traps, 55 moves, revisit 0.85",
     solution: "DDDRDLDDLURDDDULDDDURDDDULDDDURDDDULDDDURDDDULDDDULDDDD",
     text: `
@@ -186,7 +176,7 @@ const CANDIDATES = [
       #  E  #  #  #`,
   },
   {
-    name: "Candidate 18",
+    name: "Candidate 17",
     info: "cfg13 (3x3, edge-mid entry, off-corner exit), 29 pushes, 4 ways, 22 traps, 70 moves, revisit 0.89",
     solution: "DDDDRDLDDDURDLDDDLRULDDLURDLLRDLLLRULLLRDLLLRULLLRDLLLRULLLRDLLLRDLLLD",
     text: `
@@ -197,7 +187,7 @@ const CANDIDATES = [
       #  E  #  #  #`,
   },
   {
-    name: "Candidate 19",
+    name: "Candidate 18",
     info: "cfg13 (3x3, edge-mid entry, off-corner exit), 35 pushes, 4 ways, 31 traps, 86 moves, revisit 0.88",
     solution: "DDDRDDLDDRDLDDLURDLLRDLLLRULLLRDLLLRULLLRDLLLRULLLRDLLLRULLLDDLURRDDLLULULLDLDRRDDLLLD",
     text: `
@@ -208,7 +198,7 @@ const CANDIDATES = [
       #  E  #  #  #`,
   },
   {
-    name: "Candidate 20",
+    name: "Candidate 19",
     info: "icfg6 (3x3 interior, edge-mid to corner), 8 pushes, 1 way, 5 traps, 23 moves, revisit 0.78",
     solution: "DRURDLLRDDDLURDDDULDDDL",
     text: `
@@ -217,24 +207,7 @@ const CANDIDATES = [
       E  0  5`,
   },
   {
-    name: "Candidate 21",
-    info: "icfg8 (3x3 interior, centre to corner), 9 pushes, 1 way, 5 traps, 23 moves, revisit 0.78",
-    solution: "DRDRULLRUUULDRUUUDLUUUL",
-    text: `
-      E  0  5
-      0  2S  5
-      4  4  0`,
-  },
-  {
-    name: "Candidate 22",
-    info: "2x5 rect, exit straight across, 12 pushes, 3 ways, 7 traps, 30 moves, revisit 0.77",
-    solution: "DRRRURRLULDRRRRRLLURRRRDRRURUR",
-    text: `
-      2S  5  4  0  E
-      2  1  5  4  0`,
-  },
-  {
-    name: "Candidate 23",
+    name: "Candidate 20",
     info: "2x5 rect, exit diagonal, 30 pushes, 6 ways, 17 traps, 71 moves, revisit 0.90",
     solution: "DRURRRLDRURRDRDLURRDRRRLDRURRRLDLURDRURRRRRRLDLURDRRRRULDRRRURDRURDRRRR",
     text: `
@@ -242,7 +215,7 @@ const CANDIDATES = [
       0  5  1  0  E`,
   },
   {
-    name: "Candidate 24",
+    name: "Candidate 21",
     info: "notch3x5 3x5, 8 pushes, 1 way, 8 traps, 24 moves, revisit 0.71",
     solution: "RUURDLURUURRRRRDR",
     text: `
@@ -251,7 +224,7 @@ const CANDIDATES = [
       0S  0  #  2  E`,
   },
   {
-    name: "Candidate 25",
+    name: "Candidate 22",
     info: "notch3x5 3x5, 11 pushes, 2 ways, 9 traps, 25 moves, revisit 0.68",
     solution: "URURRURDRURRRDDDDR",
     text: `
@@ -260,7 +233,7 @@ const CANDIDATES = [
       0S  5  #  1  E`,
   },
   {
-    name: "Candidate 26",
+    name: "Candidate 23",
     info: "notch3x5 3x5, 11 pushes, 1 way, 8 traps, 29 moves, revisit 0.69",
     solution: "RURRRULDRRURULDRRRRRD",
     text: `
@@ -269,7 +242,7 @@ const CANDIDATES = [
       3S  2  #  0  E`,
   },
   {
-    name: "Candidate 27",
+    name: "Candidate 24",
     info: "notch3x5 3x5, 15 pushes, 2 ways, 19 traps, 45 moves, revisit 0.80",
     solution: "URRRRRRURDRRRD",
     text: `
@@ -278,7 +251,7 @@ const CANDIDATES = [
       0S  5  #  0  E`,
   },
   {
-    name: "Candidate 28",
+    name: "Candidate 25",
     info: "notch3x5 (>=6 cells at height 0) 3x5, 12 pushes, 4 ways, 5 traps, 28 moves, revisit 0.68",
     solution: "URDLDRRDRRRLDLURRURDDRDRRRDR",
     text: `
@@ -287,7 +260,7 @@ const CANDIDATES = [
       1S  4  #  0  E`,
   },
   {
-    name: "Candidate 29",
+    name: "Candidate 26",
     info: "notch3x5 (>=6 cells at height 0) 3x5, 13 pushes, 4 ways, 5 traps, 33 moves, revisit 0.73",
     solution: "URRURDRLDRUURRRRULDRRRURDRURDRRDR",
     text: `
@@ -296,7 +269,7 @@ const CANDIDATES = [
       0S  0  #  0  E`,
   },
   {
-    name: "Candidate 30",
+    name: "Candidate 27",
     info: "notch3x5 (>=6 cells at height 0) 3x5, 18 pushes, 6 ways, 8 traps, 44 moves, revisit 0.80",
     solution: "URDURDLDDRDRRULDRDRDRLURDRDLURRRRRRULDRRRRDR",
     text: `
@@ -305,7 +278,7 @@ const CANDIDATES = [
       1S  4  #  0  E`,
   },
   {
-    name: "Candidate 31",
+    name: "Candidate 28",
     info: "notch3x5 (>=6 cells at height 0) 3x5, 19 pushes, 8 ways, 5 traps, 49 moves, revisit 0.82",
     solution: "RURRLDRUURRRLDLURUURRRLURDRLDRUURRRRULDRRRURDRRDR",
     text: `
@@ -314,7 +287,7 @@ const CANDIDATES = [
       1S  0  #  0  E`,
   },
   {
-    name: "Candidate 32",
+    name: "Candidate 29",
     info: "linked32 5x5, 7 pushes, 1 plan, 5 traps, 23 moves",
     solution: "DDDLLLLULUULDLUUUDRUUUR",
     text: `
@@ -325,7 +298,7 @@ const CANDIDATES = [
       #  #  2  4  2`,
   },
   {
-    name: "Candidate 33",
+    name: "Candidate 30",
     info: "linked32 5x5, 9 pushes, 1 plan, 7 traps, 27 moves",
     solution: "DLDLLURDDRRDLULLLLLULULUURR",
     text: `
@@ -336,7 +309,7 @@ const CANDIDATES = [
       #  #  4  5  0`,
   },
   {
-    name: "Candidate 34",
+    name: "Candidate 31",
     info: "linked32 5x5, 12 pushes, 1 plan, 6 traps, 30 moves",
     solution: "DLLLLLULURULUUURURR",
     text: `

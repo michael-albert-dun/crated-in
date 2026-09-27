@@ -81,7 +81,7 @@ function baseScore(a, args) {
 function evaluate(shape, heights, args, full) {
   const text = render(shape, heights);
   const level = parseLevel(text);
-  const a = analyse(level, { maxStates: args.maxStates });
+  const a = analyse(level, { maxStates: args.maxStates, maxHeight: 9 }); // match solve()'s own default height cap
   if (!a || !a.solvable || a.walkable || a.disconnected > 0) return null;
   let score = baseScore(a, args);
   let extra = null;

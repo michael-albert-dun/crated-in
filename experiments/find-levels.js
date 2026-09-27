@@ -33,7 +33,7 @@ function parseArgs(argv) {
 }
 
 function rate(level, args) {
-  const a = analyse(level, { maxStates: args.maxStates });
+  const a = analyse(level, { maxStates: args.maxStates, maxHeight: 9 }); // match solve()'s own default height cap
   if (!a || !a.solvable || a.walkable || a.disconnected > 0 || a.length > args.maxLength) return null;
   const score =
     2 * a.traps + 1.5 * a.pushes + a.pushCells - 3 * Math.log2(a.ways) - 40 * Math.max(0, a.revisit - 0.45) - 0.2 * a.length - 40 * (a.unused / a.openCells);

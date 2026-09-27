@@ -242,7 +242,7 @@ function main() {
     const tidied = tidy(text);
     const level = parseLevel(tidied.text);
     stats.tidied += 1;
-    const a = analyse(level, { maxStates: 100000 });
+    const a = analyse(level, { maxStates: 100000, maxHeight: 9 }); // match solve()'s own default height cap
     if (!a) continue;
     stats.analysed += 1;
     if (a.length < args.minMoves || a.length > args.maxMoves || a.pushes < args.minPushes || a.pushes > args.maxPushes) continue;
