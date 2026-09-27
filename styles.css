@@ -232,6 +232,8 @@ h2 {
   color: var(--accent);
 }
 
+/* Move-hint colours (walk/push/drop): used by the "Show move hints" setting on
+   both pages, and always on in the test page. */
 .key {
   padding: 0 0.35em;
   border-radius: 3px;

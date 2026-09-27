@@ -45,7 +45,7 @@ const state = {
   // Each entry is a full snapshot, so undo is just popping.
   history: [],
   current: null,
-  settings: { gentle: false, justEnough: false, hints: true },
+  settings: { gentle: false, justEnough: false, hints: !!TEST },
   solved: new Set(),
   cheat: false,
 };
@@ -570,7 +570,7 @@ function render() {
       if (n < 0) return;
       const X0 = cellX(n % level.width);
       const Y0 = cellY(Math.floor(n / level.width));
-      if (TEST && state.settings.hints) {
+      if (state.settings.hints) {
         // What a move there would do: walk, push (2 or more higher) or fatal drop.
         const gap = current.game.h[n] - current.game.h[pos];
         const kind = gap >= 2 ? "push" : gap <= -2 ? "drop" : "walk";
@@ -1054,19 +1054,19 @@ function route() {
 function init() {
   loadStorage();
   elements.gentle.checked = state.settings.gentle;
+  elements.hints.checked = state.settings.hints;
+  elements.hints.addEventListener("change", () => {
+    state.settings.hints = elements.hints.checked;
+    saveStorage();
+    if (state.level) render(); // the setting can be flipped from the home screen, before any level is loaded
+  });
   if (TEST) {
-    elements.hints.checked = state.settings.hints;
     elements.enough.checked = state.settings.justEnough;
     LEVELS.forEach((level, i) => elements.select.appendChild(new Option(level.name, String(i))));
     elements.select.addEventListener("change", () => openLevel(Number(elements.select.value), "push"));
     elements.cheat.addEventListener("click", () => {
       state.cheat = !state.cheat;
       updateHud();
-    });
-    elements.hints.addEventListener("change", () => {
-      state.settings.hints = elements.hints.checked;
-      saveStorage();
-      render();
     });
     elements.enough.addEventListener("change", () => {
       state.settings.justEnough = elements.enough.checked;

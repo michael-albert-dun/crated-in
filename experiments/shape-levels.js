@@ -25,6 +25,9 @@ const SHAPES = {
   // A plus/cross: 5 rows x 3 columns with all four corners of that rectangle
   // removed. In at the bottom middle, exit at the top middle.
   cross3: ["# E #", ". . .", ". . .", ". . .", "# S #"],
+  // 3 rows x 5 columns: the top-left and top-right cells removed, and the middle
+  // of the bottom row removed. Entry at the bottom left, exit at the bottom right.
+  notch3x5: ["# . . . #", ". . . . .", "S . # . E"],
   // 2 rows x 5 columns, entry at the top-left cell, exit somewhere in the right
   // column: "a" straight across (top right), "b" diagonally (bottom right).
   rect2x5a: ["S . . . E", ". . . . ."],

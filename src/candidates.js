@@ -1,4 +1,4 @@
-// Candidate levels from experiments/shape-levels.js (picked by pick-shapes.js), for review in the test UI.
+// Candidate levels from experiments/shape-levels.js / exhaust-shape.js / etc, for review in the test UI.
 // Same format as levels.js. Replace or delete freely.
 const CANDIDATES = [
   {
@@ -240,5 +240,41 @@ const CANDIDATES = [
     text: `
       0S  1  5  5  0
       0  5  1  0  E`,
+  },
+  {
+    name: "Candidate 24",
+    info: "notch3x5 3x5, 8 pushes, 1 way, 8 traps, 24 moves, revisit 0.71",
+    solution: "RUURDLURUURRRRRDR",
+    text: `
+      #  4  5  2  #
+      4  2  3  5  0
+      0S  0  #  2  E`,
+  },
+  {
+    name: "Candidate 25",
+    info: "notch3x5 3x5, 11 pushes, 2 ways, 9 traps, 25 moves, revisit 0.68",
+    solution: "URURRURDRURRRDDDDR",
+    text: `
+      #  0  4  0  #
+      2  1  5  5  1
+      0S  5  #  1  E`,
+  },
+  {
+    name: "Candidate 26",
+    info: "notch3x5 3x5, 11 pushes, 1 way, 8 traps, 29 moves, revisit 0.69",
+    solution: "RURRRULDRRURULDRRRRRD",
+    text: `
+      #  3  3  5  #
+      3  1  4  5  1
+      3S  2  #  0  E`,
+  },
+  {
+    name: "Candidate 27",
+    info: "notch3x5 3x5, 15 pushes, 2 ways, 19 traps, 45 moves, revisit 0.80",
+    solution: "URRRRRRURDRRRD",
+    text: `
+      #  2  2  5  #
+      0  0  4  5  1
+      0S  5  #  0  E`,
   },
 ];
