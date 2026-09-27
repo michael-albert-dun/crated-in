@@ -90,11 +90,18 @@ function parseArgs(argv) {
   return args;
 }
 
-function fits(a, args) {
+// `ways` is analyse()'s raw count of distinct shortest move-sequences: cheap
+// (already computed), but inflated by walking a different route to the same
+// launch cell before a push, or approaching a push from a different side (see
+// push-ways.js for what that second kind actually means for play). Callers that
+// have paid for the accurate count (pushWays(), in push-ways.js: distinct
+// (launch cell, pile) sequences) pass it as `waysValue`; otherwise this falls
+// back to the raw, noisier count.
+function fits(a, args, waysValue = a && a.ways) {
   return (
     a && a.solvable && !a.walkable && a.disconnected === 0 && a.unused <= (args.maxUnused || 0) &&
     a.length >= args.minMoves && a.length <= args.maxMoves && a.pushes >= args.minPushes && a.pushes <= args.maxPushes &&
-    a.traps >= args.minTraps && a.ways <= args.maxWays && a.revisit <= args.maxRevisit
+    a.traps >= args.minTraps && waysValue <= args.maxWays && a.revisit <= args.maxRevisit
   );
 }
 
@@ -147,7 +154,11 @@ function finish(all, args) {
       c = { ...c, text: toExitCell(c.text) };
       const level = parseLevel(c.text);
       const solution = solve(level, { maxStates: 400000 }).moves;
-      const info = `${level.width}x${level.height}, ${c.a.pushes} pushes, ${c.a.ways} way${c.a.ways === 1 ? "" : "s"}, ${c.a.traps} traps, ${c.a.length} moves`;
+      // `pw` (push-sequences, the corrected count) is attached by callers that computed
+      // it; otherwise fall back to reporting the raw, noisier `ways` alone.
+      const info = c.pw === undefined
+        ? `${level.width}x${level.height}, ${c.a.pushes} pushes, ${c.a.ways} way${c.a.ways === 1 ? "" : "s"}, ${c.a.traps} traps, ${c.a.length} moves`
+        : `${level.width}x${level.height}, ${c.a.pushes} pushes, ${c.pw} plan${c.pw === 1 ? "" : "s"} (${c.a.ways} raw), ${c.a.traps} traps, ${c.a.length} moves`;
       console.log(`// ${info}\n${c.text}\n`);
       return `  {
     name: "Candidate ${i + 1}",

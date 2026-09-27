@@ -17,6 +17,7 @@ const { parseLevel, solve } = require("../src/engine.js");
 const { mulberry32 } = require("./random-levels.js");
 const { analyse } = require("./analyse.js");
 const { faults, forcedRuns } = require("./tidy.js");
+const { pushWays } = require("./push-ways.js");
 const { fits, finish } = require("./make-levels.js");
 
 const SHAPES = {
@@ -86,7 +87,14 @@ function evaluate(shape, heights, args, full) {
     const solution = solve(level, { maxStates: 100000 });
     if (solution.status !== "solved") return null;
     const runs = forcedRuns(level, solution.moves);
-    extra = { decoys: f ? f.decoys : 99, runs };
+    // The cheap score above penalises raw `ways` (noisy: inflated by walking to
+    // the same launch cell by different equal-length routes, or by which side of
+    // a pile a push came from -- see push-ways.js). Now that we can afford it,
+    // undo that rough penalty and apply the accurate one instead.
+    const pw = pushWays(level, { maxStates: args.maxStates, maxHeight: 9, capSequences: 4000 });
+    const plans = pw && !pw.overflow ? pw.pushSequences : Infinity;
+    extra = { decoys: f ? f.decoys : 99, runs, plans };
+    score += 3 * Math.log2(Math.max(1, a.ways)) - 3 * Math.log2(Math.max(1, Math.min(plans, 1e6)));
     score -= (args.maxDecoys > 0 ? 2 : 8) * extra.decoys + 3 * (Math.max(0, runs.opening - 1) + Math.max(0, runs.closing - 1));
   }
   return { text, a, score, extra };
@@ -130,7 +138,10 @@ function anneal(shape, args, rand, deadline) {
 }
 
 function qualifies(best, args) {
-  return best && best.extra && best.extra.decoys <= args.maxDecoys && best.extra.runs.opening <= 2 && best.extra.runs.closing <= 2 && fits(best.a, args);
+  return (
+    best && best.extra && best.extra.decoys <= args.maxDecoys && best.extra.runs.opening <= 2 && best.extra.runs.closing <= 2 &&
+    fits(best.a, args, best.extra.plans)
+  );
 }
 
 function main() {
@@ -149,14 +160,23 @@ function main() {
       }
     }
     console.log(`${seen.size} boards in ${files.length} logs`);
-    // The logs hold every attempt; re-check the ones in the window for decoys and forced ends.
-    const clean = [...seen.values()].filter((item) => {
-      if (!fits(item.a, args)) return false;
+    // The logs hold every attempt; re-check the ones in the window for decoys and
+    // forced ends, and only now pay for the accurate push-sequence count (each
+    // log already carries the cheap raw `ways`, but not necessarily `pw`).
+    const clean = [];
+    for (const item of seen.values()) {
+      if (!fits(item.a, args, item.a.ways)) continue; // quick pre-filter on the cheap count first
       const level = parseLevel(item.text);
       const f = faults(item.text);
-      const runs = forcedRuns(level, solve(level, { maxStates: 100000 }).moves);
-      return f && f.decoys <= args.maxDecoys && runs.opening <= 2 && runs.closing <= 2;
-    });
+      const solution = solve(level, { maxStates: 100000 });
+      if (solution.status !== "solved") continue;
+      const runs = forcedRuns(level, solution.moves);
+      if (!f || f.decoys > args.maxDecoys || runs.opening > 2 || runs.closing > 2) continue;
+      const pw = item.pw !== undefined ? { pushSequences: item.pw, overflow: false } : pushWays(level, { maxStates: args.maxStates, maxHeight: 9, capSequences: 4000 });
+      const plans = pw && !pw.overflow ? pw.pushSequences : Infinity;
+      if (!fits(item.a, args, plans)) continue;
+      clean.push({ ...item, pw: plans });
+    }
     console.log(`${clean.length} clean boards in the window`);
     return finish(clean, args);
   }
@@ -172,9 +192,10 @@ function main() {
       if (!best) continue;
       const ok = qualifies(best, args);
       const a = best.a;
-      console.log(`${name} #${r}: ${ok ? "KEEP" : "skip"} ${a.length}m ${a.pushes}p ${a.traps}t ${a.ways}w rev ${a.revisit.toFixed(2)} decoys ${best.extra && best.extra.decoys} forced ${best.extra && best.extra.runs.opening}/${best.extra && best.extra.runs.closing} score ${best.score.toFixed(1)}`);
-      console.log(`FOUND ${JSON.stringify({ text: best.text, a })}`);
-      if (ok) found.set(best.text, { text: best.text, a });
+      const plans = best.extra && best.extra.plans;
+      console.log(`${name} #${r}: ${ok ? "KEEP" : "skip"} ${a.length}m ${a.pushes}p ${a.traps}t ${a.ways}w-raw ${plans}pw rev ${a.revisit.toFixed(2)} decoys ${best.extra && best.extra.decoys} forced ${best.extra && best.extra.runs.opening}/${best.extra && best.extra.runs.closing} score ${best.score.toFixed(1)}`);
+      console.log(`FOUND ${JSON.stringify({ text: best.text, a, pw: plans })}`);
+      if (ok) found.set(best.text, { text: best.text, a, pw: plans });
     }
   }
   console.log(`${found.size} kept`);
