@@ -9,73 +9,57 @@
 const LEVELS = [
   {
     name: "Level 1",
-    info: "3x5, 1 push (hand-made tutorial)",
-    solution: "UUUURRRDD",
+    info: "3x3, 2 pushes (hand-made tutorial)",
+    solution: "UURRRRDD",
     text: `
-      2  4  1
-      2  #  1
-      2  0  E
-      1  #  #
-      0S #  #`,
+      1  0  4
+      2  #  0
+      2S  0  E`,
   },
   {
     name: "Level 2",
-    info: "4x4, 2 pushes",
+    info: "4x3, 2 pushes",
     solution: "DRULLUUURU",
     text: `
-      #  E  #  #
-      1  1  0  0
-      3  #  5  4
-      2S 0  1  #
-      1  1  1  2`,
+      #  E  #
+      1  1  0
+      3  #  5
+      2S  0  1
+      1  1  1`,
   },
   {
     name: "Level 3",
-    info: "4x4, 3 pushes",
-    solution: "UURRRRRRU",
-    text: `
-      #  #  #  E
-      0  2  2  4
-      1  #  1  #
-      2S 0  #  #
-      #  #  #  #`,
-  },
-  {
-    name: "Level 4",
     info: "4x4, 5 pushes",
     solution: "ULLLDLDDRRUULLLLLUU",
     text: `
       E  #  #  #
       0  #  #  #
       3  2  0  1
-      0  2  #  2S
+      #  2  #  2S
       #  1  3  3`,
   },
   {
-    name: "Level 5",
-    info: "5x5, 5 pushes",
-    solution: "LLLULDLULLUURRDRRRR",
+    name: "Level 4",
+    info: "3x4, 4 pushes",
+    solution: "LLULDLULLUURRDR",
     text: `
-      #  #  #  #  #  #
-      3  2  1  0  0  #
-      0  #  0  0  2  E
-      3  1  #  0  #  #
-      3  0  1  2S #  #`,
+      3  2  1  #
+      0  #  0  E
+      3  1  #  #
+      3  0  1S  #`,
   },
   {
-    name: "Level 6",
-    info: "5x5, 6 pushes",
-    solution: "UUUUULDRRDLURDRLLDDRDDD",
+    name: "Level 5",
+    info: "5x4, 5 pushes",
+    solution: "UUUULDRRDLURDRLLDD",
     text: `
       #  #  #  0  1
       #  2  3  0  1
       #  1  #  #  4
-      #  1  1  #  1
-      #  #  3  #  0S
-      #  #  E  #  #`,
+      #  E  #  #  1S`,
   },
   {
-    name: "Level 7",
+    name: "Level 6",
     info: "5x5, 6 pushes",
     solution: "DLLDLLUULLDDRUUULLLURURR",
     text: `
@@ -86,7 +70,7 @@ const LEVELS = [
       #  4  0  2  2`,
   },
   {
-    name: "Level 8",
+    name: "Level 7",
     info: "3x5, 9 pushes",
     solution: "URRRURURDLDDRRDR",
     text: `
@@ -95,7 +79,7 @@ const LEVELS = [
       0S  5  #  0  E`,
   },
   {
-    name: "Level 9",
+    name: "Level 8",
     info: "5x5, 10 pushes",
     solution: "LLURDLDDLUULDRRRRULLUURRRUURRRDDDDR",
     text: `
@@ -106,7 +90,7 @@ const LEVELS = [
       0  0  2  3  3S #`,
   },
   {
-    name: "Level 10",
+    name: "Level 9",
     info: "5x5, 7 pushes",
     solution: "DLLLUUULLLDDDRRRUUUUULDDDDLLUUUURRRRDRUU",
     text: `
@@ -118,7 +102,7 @@ const LEVELS = [
       1  0  1  4  1`,
   },
   {
-    name: "Level 11",
+    name: "Level 10",
     info: "5x5, 20 pushes",
     solution: "URRUUUDLURULDRUUUDLUURURUURRULDRDLLLDRULDRDLUURURULLUU",
     text: `
@@ -130,7 +114,7 @@ const LEVELS = [
       2S 1  #  #  #`,
   },
   {
-    name: "Level 12",
+    name: "Level 11",
     info: "6x6, 10 pushes",
     solution: "UUURURDRDDDDDDRRRURRULUUUUR",
     text: `
@@ -142,7 +126,7 @@ const LEVELS = [
       #  #  0  1  5  0  #`,
   },
   {
-    name: "Level 13",
+    name: "Level 12",
     info: "6x5, 12 pushes",
     solution: "URUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
@@ -154,7 +138,7 @@ const LEVELS = [
       1S #  3  0  0  #`,
   },
   {
-    name: "Level 14",
+    name: "Level 13",
     info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
@@ -165,7 +149,7 @@ const LEVELS = [
       0  1  3  0  #  #`,
   },
   {
-    name: "Level 15",
+    name: "Level 14",
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
@@ -176,7 +160,7 @@ const LEVELS = [
       #  0S #  #  #  #`,
   },
   {
-    name: "Level 16",
+    name: "Level 15",
     info: "5x4, 18 pushes",
     solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRR",
     text: `
