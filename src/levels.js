@@ -60,14 +60,14 @@ const LEVELS = [
   },
   {
     name: "Level 6",
-    info: "5x5, 6 pushes",
-    solution: "DLLDLLUULLDDRUUULLLURURR",
+    info: "5x5, 7 pushes",
+    solution: "DDDLULLLLUULLUURURR",
     text: `
-      2  0  E  #  #
-      1  2  #  #  #
-      0  4  1  #  0S
-      #  1  2  0  1
-      #  4  0  2  2`,
+      4  0  E  #  #
+      1  5  #  #  #
+      3  3  #  #  0S
+      #  1  1  2  3
+      #  #  3  5  0`,
   },
   {
     name: "Level 7",

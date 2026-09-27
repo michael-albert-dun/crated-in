@@ -3,7 +3,9 @@
 A box-manipulation puzzle on a grid.
 
 This is an early design sketch. There is a rules engine, headless experiments,
-a play UI (`index.html`) and a test page (`test.html`, the same game with test tools).
+a play UI (`index.html`), a test page (`test.html`, the same game with test tools)
+and a pool page (`pool.html`, the same game showing a disposable batch of levels
+to choose between).
 
 The fiction: the door slams behind you and you're crated in; across the room a
 column of light glows, your only way out. You have a wand that is supposed to move
@@ -22,7 +24,8 @@ python3 -m http.server 4176 --bind 127.0.0.1
 ```
 
 Then open http://127.0.0.1:4176/ for the home screen (`?level=3` jumps straight to
-a level) or http://127.0.0.1:4176/test.html for the test UI.
+a level), http://127.0.0.1:4176/test.html for the test UI, or
+http://127.0.0.1:4176/pool.html for whatever batch is currently in the pool.
 
 ### Play UI (`index.html`)
 
@@ -96,6 +99,20 @@ be won, the next move of a shortest solution and how many moves remain, or "This
 room can't be escaped any more". It re-solves after every move, using the
 engine's `solve(level, { from: state })`.
 
+### Pool UI (`pool.html`)
+
+The same game again, built the same way as the test page (`src/pool-config.js`
+sets `window.CRATED_TEST` with `pool: true`, no real levels, no candidates.js),
+but for one purpose: showing a disposable batch of levels to choose between.
+`src/pool.js` holds the whole list as `POOL`, and the file is meant to be fully
+**overwritten** with a fresh batch each time, not appended to the way
+`candidates.js` is, so it never accumulates old decided-and-forgotten options.
+`experiments/make-levels.js`'s `finish()` and `experiments/pick-shapes.js`
+detect an `--out` path named `pool.js` and switch the variable name and each
+entry's name prefix to `POOL`/"Option N" automatically. Settings and solved
+ticks use their own storage keys (`crated-in.pool.*`), separate from both the
+main page and the test page.
+
 ## The board
 
 Play is on a rectangular grid. Each cell is in exactly one of these states:
@@ -168,7 +185,9 @@ were first moved to an edge side of the target, which leaves the solution unchan
 - `tests/engine.test.js`: rules tests. Run `node --test tests/engine.test.js`.
 - `index.html`, `styles.css`, `src/game.js`: the play UI (SVG, top-down
   drawing, animation) with its home screen. `test.html` and `src/test-config.js`:
-  the same game with test tools (see above). Undo is a history of snapshots. `src/levels.js` holds the rooms
+  the same game with test tools (see above). `pool.html` and `src/pool-config.js`:
+  the same game again, showing only the disposable batch in `src/pool.js` (see
+  above). Undo is a history of snapshots. `src/levels.js` holds the rooms
   in level text format, each with its shortest known solution. `experiments/convert.js`
   converts old-style levels to the exit-cell form.
 - `experiments/generate.js`: hill-climbing level generator (see below).
@@ -186,8 +205,8 @@ when a cap was hit before the search finished.
 
 ## First findings (seed 1, 150 random boards per size, 10% walls)
 
-Targets are random cells that have a valid exit gap. Lengths are from before
-stepping out became a move, so add one to each.
+From `experiments/explore.js`. Targets are random cells that have a valid exit
+gap. Lengths are from before stepping out became a move, so add one to each.
 
 | Size | Solvable | Need a push | Median / max solution length |
 | --- | --- | --- | --- |
@@ -213,10 +232,12 @@ running longer it drifts to 90 to 180 move solutions that are mostly repeated
 grinding, which probably isn't fun. Score doesn't yet measure what makes a
 puzzle good (few distinct solutions, tempting dead ends), so pick by eye.
 
-Level 1 in `src/levels.js` is a hand-made tutorial (a P-shaped corridor with one
-push), and Levels 1 to 3 are meant as the tutorial set. Level 3 is deliberately
-a corridor with no decisions, to show that a push raises the base height you
-stand on. The rest came from this generator (plus the original 5x5 example, and
+Level 1 in `src/levels.js` is a hand-made tutorial (a plain 3x3 room with a
+central pillar). The early levels have been through an "elegance pruning" pass
+since: several were replaced with plain open shapes (a room with a pillar or
+two, a rectangle, a rectangle with a notch) found by the search below rather
+than hand-built, or trimmed of decoy cells; expect this to continue. The rest
+came from this generator (plus the original 5x5 example, and
 one room regenerated when entry gates were added because its start cell had no
 valid gate side), ordered from 4x4 rooms with 2 pushes up to 5x5 rooms with 18.
 Two rooms were eased by turning a crate into a wall. The number of iterations is
@@ -226,23 +247,136 @@ the difficulty dial.
 
 `experiments/analyse.js` explores every reachable state of a level (ignoring
 piles above 6, which no sensible solution needs) and reports what the shortest
-solution alone can't: how many distinct shortest solutions there are, how many
-of its moves lead somewhere you can't escape from (traps), how much it shuffles
-back and forth, and which open cells it never touches (an irrelevant corner).
-Open cells walled off from the start are counted too. `experiments/rate-levels.js`
-prints these for every level in `src/levels.js`.
+solution alone can't: how many distinct shortest move-sequences there are
+(`ways`), how many of its moves lead somewhere you can't escape from (traps),
+how much it shuffles back and forth (`revisit`), and which open cells it never
+touches (`unused`: an irrelevant corner). Open cells walled off from the start
+are counted too (`disconnected`). `experiments/rate-levels.js` prints these for
+every level in `src/levels.js`.
 
-`experiments/find-levels.js` hill-climbs random boards on those measures instead
-of solution length alone, rejects boards with enclosed cells or more than 35%
-unused cells, keeps initial heights at 5 or below (pushes can build higher in
-play), and writes `src/candidates.js`. `test.html` lists those after the real
-levels as "Candidate N" for review; promote a good one by copying it into
-`src/levels.js`. The tuning weights are guesses; play the candidates and adjust.
+`experiments/push-ways.js` fixes a real flaw in `ways`: it counts raw
+move-sequences, which is inflated by walking to the same push by a different
+route of the same length (not a different plan) and, less obviously, by which
+side of a pile you pushed from (a push never moves you, so pushing the same
+pile from a different neighbour leaves you standing somewhere genuinely
+different afterward, which can matter for what you can do next -- so *that*
+distinction is real, unlike the walking-route one). `pushWays(level, opts)`
+returns the count of distinct `(launch cell, pile)` sequences instead: usually
+well under half the raw count, sometimes close to it. It's expensive (another
+full solve of the state graph), so the generators below use raw `ways` as a
+cheap proxy while searching and only pay for the accurate count on boards that
+already look promising, keeping both numbers in a level's `info` string
+(`"N plans (M raw ways)"`) since the gap between them is itself informative.
 
-A design preference for the finder and for hand edits: alcove decoys, meaning
-protruding cells that no shortest solution uses and that only add somewhere to
-wander into and get stuck, count against a level. Several levels had them and
-were tidied by turning the crate into a wall (`rate-levels.js` shows the
-"unused" cells that give them away). The finder's `unused` measure already
-penalises them in general; a stricter version could specifically target dead-end
-protrusions.
+`experiments/tidy.js` cleans up a board the way levels have been tidied by
+hand: `faults(text)` finds decoy cells (an open cell that can be turned to wall
+without changing the shortest solution's length -- somewhere to wander into and
+get stuck) and separates out *tempting* ones (where the cell is removable
+**and** moving the exit onto it would roughly halve the solution -- a
+near-miss the level wants you to be drawn to, not a defect); `forcedRuns(level,
+moves)` finds the forced walk at either end of the solution (states with no
+real choice); `tidy(text)` applies both, walling off decoys, moving the start
+past a forced opening, trimming a forced closing walk back to the exit, and
+cropping any all-wall border rows/columns left behind.
+
+Alcove decoys count against a level as a design preference; several of the real
+levels had them and were tidied by turning the crate into a wall. But a
+*tempting* alcove is worth keeping, since it's the near-miss that makes a wrong
+turn feel like a real mistake rather than a random wall.
+
+## Shape-seeded search
+
+The free-form search below can grow long corridors and decoy alcoves as a side
+effect of hill-climbing on solution length; `experiments/shape-levels.js` avoids
+that by fixing the room's shape (walls, start, exit) up front and only
+searching the crate heights, by simulated annealing on traps, pushes, `revisit`
+and (once a board is already promising) decoys, forced ends and the real
+`pushWays` count:
+
+```
+node experiments/shape-levels.js [--shapes all|name,name] [--restarts 6] [--iterations 600]
+     [--seed 1] [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 13]
+     [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--minutes 0]
+     [--out src/candidates.js] [--count 5]
+node experiments/shape-levels.js --merge run1.log run2.log ...
+```
+
+A shape is rows of `.` (open), `#` (wall), `E` (the exit cell) and `S` (the
+start); `SHAPES` in the file has the ones tried so far (`square4`, `diag4`,
+`cross3`, `notch5x4`, `pillars6`, `nibbles6`, the 2x5 rectangles, `linked32`,
+...), each with a one-line comment on the shape it describes. `--minutes`
+self-stops a long run so it can be left going in the background; each attempt
+logs a `FOUND {json}` line, so several `--seed`s can run in parallel and be
+merged afterwards. `experiments/cross-shapes.js` and
+`experiments/interior-shapes.js` generate whole *families* of shapes rather
+than one each: every essentially-different way to place the entry and exit on
+a plain 3x3 room's perimeter (17, up to the room's dihedral symmetry) or fully
+inside it (8, excluding adjacent placements), merged into `shape-levels.js`'s
+own `SHAPES` automatically.
+
+`experiments/pick-shapes.js` picks the actual candidates from a shape's logs:
+re-checks each board (decoys, forced ends, the real `pushWays` count), ranks by
+fewest repeated squares/decoys/plans, and spreads the picks across the solution
+lengths on offer.
+
+```
+node experiments/pick-shapes.js [--per-shape 2] [--out src/candidates.js] label=log1,log2 label=log3 ...
+```
+
+Both tools' `--out` writes `src/candidates.js` (appendable; "Candidate N") by
+default, or `src/pool.js` ("Option N" instead, and the whole file replaced, not
+appended to -- see Pool UI above) when the path's basename is `pool.js`.
+
+## Exhaustive search
+
+When a shape is small enough, `experiments/exhaust-shape.js` sidesteps the
+search entirely: every assignment of heights 0..max to the open cells, solved,
+keeping the longest. Roughly 10 million boards (9 cells at height 0..5) run in
+under a minute on one core, and split across `--part`/`--parts` for more; this
+is how we know a shape's true ceiling rather than just what a search happened
+to find. `experiments/exhaust-zero.js` is the same idea restricted to boards
+with at least `--min-zero` cells at height 0 (generated directly by choosing
+which cells are zeroed rather than filtering the full space, since that subset
+can be a tiny fraction of it): still exhaustive *within* that restriction, just
+over a deliberately smaller space, useful when the full sweep would take too
+long or when a room reading "mostly flat, a few tall stacks" matters for its
+own sake.
+
+```
+node experiments/exhaust-shape.js --shape diag4 [--max-height 5] [--part 0 --parts 1] [--keep 40] [--min-moves 18]
+node experiments/exhaust-zero.js --shape notch3x5 --min-zero 6 [--max-height 5] [--part 0 --parts 1] [--keep 40] [--min-moves 18]
+```
+
+Neither writes `src/candidates.js` directly; their `BEST {json}` lines get
+merged and scored the same way as `shape-levels.js`'s (see the shape-search
+sessions in the repo's history for the exact recipe), since a board worth
+keeping still needs the decoy/forced-end/`pushWays` checks above.
+
+## Free-form search
+
+`experiments/random-levels.js` is the shared RNG and board/mutation helpers
+behind this section (a seeded `mulberry32`, `randomLevel`, `mutate`); nothing
+here is run directly. `experiments/find-levels.js` hill-climbs random boards
+(any walls, not a fixed shape) on the `analyse.js` measures instead of solution
+length alone, rejects
+boards with enclosed cells or more than 35% unused cells, and keeps initial
+heights at 5 or below (pushes can build higher in play). `experiments/make-levels.js`
+builds on it: climbs, tidies with `tidy.js`, re-analyses, and keeps only boards
+that still fit the target window, writing the best few (as `src/candidates.js`
+or `src/pool.js`, same as `pick-shapes.js` above) spread across it.
+
+```
+node experiments/make-levels.js [--sizes 5x5,6x5,6x6] [--seeds 1-12] [--count 5]
+     [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 11]
+     [--min-traps 3] [--max-ways 3] [--out src/candidates.js]
+node experiments/make-levels.js --merge run1.log run2.log ... [--count 5] [--out src/candidates.js]
+```
+
+Since this search can still grow corridors and decoys by construction (that's
+what `tidy.js` was built to clean up after), the shape-seeded search above is
+the better default; this is what produced most of the original candidates
+before shapes existed. `experiments/reverse-levels.js` is an abandoned attempt
+at a third approach (building a level backwards from a finished position by
+undoing pushes, so every cell is solvable by construction) that never
+consistently beat shape-seeding in practice; it's left in the repo but isn't
+part of the active pipeline.

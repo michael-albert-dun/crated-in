@@ -63,13 +63,17 @@ for (const { label, files } of groups) {
   for (const c of new Set(chosen)) picked.push(c);
 }
 
+// src/pool.js (ephemeral, fully overwritten -- see that file's own comment) gets
+// POOL and "Option N"; anywhere else gets the usual CANDIDATES and "Candidate N".
+const isPool = args.out && path.basename(args.out) === "pool.js";
+const namePrefix = isPool ? "Option" : "Candidate";
 const body = picked
   .map((c, i) => {
     const level = parseLevel(c.text);
     const info = `${c.label} ${level.height}x${level.width}, ${c.a.pushes} pushes, ${c.pw} plan${c.pw === 1 ? "" : "s"} (${c.a.ways} raw ways), ${c.a.traps} traps, ${c.a.length} moves, revisit ${c.a.revisit.toFixed(2)}, ${c.f.decoys} decoys, ${c.f.tempting} tempting`;
     console.log(`// ${info}\n${c.text}\n`);
     return `  {
-    name: "Candidate ${i + 1}",
+    name: "${namePrefix} ${i + 1}",
     info: "${info}",
     solution: "${c.solution}",
     text: \`
@@ -78,7 +82,15 @@ ${c.text.split("\n").map((l) => "      " + l).join("\n")}\`,
   })
   .join("\n");
 if (args.out && picked.length) {
-  const header = `// Candidate levels from experiments/shape-levels.js (picked by pick-shapes.js), for review in the test UI.
+  const header = isPool
+    ? `// A throwaway batch of levels to look at and choose between, in level text
+// format. Ephemeral by design: the whole file gets overwritten with a fresh
+// POOL every time there's a new batch to show, rather than growing forever the
+// way src/candidates.js was starting to. Once a choice is made, whatever's here
+// can be discarded; nothing else in the game refers to it. See pool.html.
+const POOL = [
+`
+    : `// Candidate levels from experiments/shape-levels.js (picked by pick-shapes.js), for review in the test UI.
 // Same format as levels.js. Replace or delete freely.
 const CANDIDATES = [
 `;

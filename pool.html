@@ -3,28 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Crated In (test)</title>
+    <title>Crated In (pool)</title>
     <link rel="stylesheet" href="styles.css?v=20260927e" />
     <script defer src="src/engine.js?v=20260927a"></script>
-    <script defer src="src/levels.js?v=20260927w"></script>
-    <script defer src="src/candidates.js?v=20260927i"></script>
-    <script defer src="src/test-config.js?v=20260927a"></script>
+    <script defer src="src/pool.js?v=1"></script>
+    <script defer src="src/pool-config.js?v=1"></script>
     <script defer src="src/game.js?v=20260927x"></script>
   </head>
   <body>
     <main>
-      <!-- Same game as index.html, with test tools: candidates after the real levels, move hints, cheat button. -->
+      <!-- A disposable batch of levels to compare, nothing else: same game as
+           index.html/test.html, but the whole grid is src/pool.js, overwritten
+           each time there's a new set to look at (see the file's own comment). -->
       <section id="menu-screen">
         <header>
-          <h1>Crated In <small>(test)</small></h1>
+          <h1>Crated In <small>(pool)</small></h1>
         </header>
 
         <p class="howto">
-          Same game as the main page, plus the candidate levels from the finder (dashed tiles), colour hints on the
-          squares next to you, and a cheat button. Progress and settings here are kept separately.
+          A throwaway batch to compare and choose from, not the real level list. Move hints and a cheat
+          button are on, same as the test page. This page's contents change without notice.
         </p>
 
-        <h2>Test options</h2>
+        <h2>Options</h2>
         <div class="settings">
           <label><input type="checkbox" id="opt-hints" /> Show move hints (<span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
           <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>

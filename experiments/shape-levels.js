@@ -26,6 +26,9 @@ const SHAPES = {
   // A plus/cross: 5 rows x 3 columns with all four corners of that rectangle
   // removed. In at the bottom middle, exit at the top middle.
   cross3: ["# E #", ". . .", ". . .", ". . .", "# S #"],
+  // A 3x2 block and a 2x3 block, joined through a single crate: entry near the
+  // top of the 3x2 (its exit gap), exit near the bottom of the 2x3.
+  linked32: [". . E # #", ". . # # #", ". . # # S", "# . . . .", "# # . . ."],
   // 3 rows x 5 columns: the top-left and top-right cells removed, and the middle
   // of the bottom row removed. Entry at the bottom left, exit at the bottom right.
   notch3x5: ["# . . . #", ". . . . .", "S . # . E"],

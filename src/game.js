@@ -20,8 +20,11 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 // candidate levels appended, colour hints on the neighbouring squares, a level
 // menu and a cheat button. Its saved settings and progress are kept separate.
 const TEST = window.CRATED_TEST || null;
-const SETTINGS_KEY = TEST ? "crated-in.test.play.v1" : "crated-in.play.v1";
-const PROGRESS_KEY = TEST ? "crated-in.test.solved.v1" : "crated-in.solved.v1";
+// Pool pages get their own storage namespace: their level list is ephemeral (a
+// fresh batch each time), so "solved" checkmarks from a previous batch would be
+// stale and misleading if they shared the test page's key.
+const SETTINGS_KEY = TEST ? (TEST.pool ? "crated-in.pool.play.v1" : "crated-in.test.play.v1") : "crated-in.play.v1";
+const PROGRESS_KEY = TEST ? (TEST.pool ? "crated-in.pool.solved.v1" : "crated-in.test.solved.v1") : "crated-in.solved.v1";
 const HINT_COLORS = { walk: "#009e73", push: "#e69f00", drop: "#d55e00" }; // Okabe-Ito
 const KEY_DIRS = {
   ArrowUp: 0, w: 0, W: 0,

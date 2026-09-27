@@ -313,4 +313,37 @@ const CANDIDATES = [
       2  0  4  5  0
       1S  0  #  0  E`,
   },
+  {
+    name: "Candidate 32",
+    info: "linked32 5x5, 7 pushes, 1 plan, 5 traps, 23 moves",
+    solution: "DDDLLLLULUULDLUUUDRUUUR",
+    text: `
+      2  0  E  #  #
+      4  2  #  #  #
+      0  2  #  #  0S
+      #  3  4  4  0
+      #  #  2  4  2`,
+  },
+  {
+    name: "Candidate 33",
+    info: "linked32 5x5, 9 pushes, 1 plan, 7 traps, 27 moves",
+    solution: "DLDLLURDDRRDLULLLLLULULUURR",
+    text: `
+      2  0  E  #  #
+      1  5  #  #  #
+      4  4  #  #  0S
+      #  0  1  1  1
+      #  #  4  5  0`,
+  },
+  {
+    name: "Candidate 34",
+    info: "linked32 5x5, 12 pushes, 1 plan, 6 traps, 30 moves",
+    solution: "DLLLLLULURULUUURURR",
+    text: `
+      3  0  E  #  #
+      4  5  #  #  #
+      1  2  #  #  0S
+      #  2  0  4  0
+      #  #  2  5  2`,
+  },
 ];

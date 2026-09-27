@@ -147,6 +147,7 @@ function finish(all, args) {
     picks.push(all[Math.round((i * (all.length - 1)) / Math.max(1, Math.min(args.count, all.length) - 1))]);
   }
   const unique = [...new Set(picks)];
+  const namePrefix = args.out && path.basename(args.out) === "pool.js" ? "Option" : "Candidate";
   const body = unique
     .map((c0, i) => {
       let c = c0;
@@ -161,7 +162,7 @@ function finish(all, args) {
         : `${level.width}x${level.height}, ${c.a.pushes} pushes, ${c.pw} plan${c.pw === 1 ? "" : "s"} (${c.a.ways} raw), ${c.a.traps} traps, ${c.a.length} moves`;
       console.log(`// ${info}\n${c.text}\n`);
       return `  {
-    name: "Candidate ${i + 1}",
+    name: "${namePrefix} ${i + 1}",
     info: "${info}",
     solution: "${solution}",
     text: \`
@@ -169,14 +170,30 @@ ${c.text.split("\n").map((l) => "      " + l).join("\n")}\`,
   },`;
     })
     .join("\n");
-  if (args.out && unique.length) {
-    const header = `// Candidate levels from experiments/make-levels.js, for review in the test UI.
+  writeOut(args.out, unique.length, body);
+}
+
+// Writes to src/candidates.js (appendable, growing) or src/pool.js (ephemeral,
+// fully overwritten each time -- see that file's own comment): the variable
+// name and each entry's name prefix ("Candidate"/"Option") follow from which.
+function writeOut(out, count, body) {
+  if (!out || !count) return;
+  const isPool = path.basename(out) === "pool.js";
+  const varName = isPool ? "POOL" : "CANDIDATES";
+  const header = isPool
+    ? `// A throwaway batch of levels to look at and choose between, in level text
+// format. Ephemeral by design: the whole file gets overwritten with a fresh
+// POOL every time there's a new batch to show, rather than growing forever the
+// way src/candidates.js was starting to. Once a choice is made, whatever's here
+// can be discarded; nothing else in the game refers to it. See pool.html.
+const POOL = [
+`
+    : `// Candidate levels from experiments/make-levels.js, for review in the test UI.
 // Same format as levels.js. Replace or delete freely.
 const CANDIDATES = [
 `;
-    fs.writeFileSync(path.resolve(args.out), header + body + "\n];\n");
-    console.log(`wrote ${args.out}`);
-  }
+  fs.writeFileSync(path.resolve(out), header + body + "\n];\n");
+  console.log(`wrote ${out} (${varName}, ${count} entries)`);
 }
 
 function merge(argv, at) {
@@ -197,4 +214,4 @@ function merge(argv, at) {
 }
 
 if (require.main === module) main();
-module.exports = { fits, finish, parseArgs };
+module.exports = { fits, finish, parseArgs, writeOut };
