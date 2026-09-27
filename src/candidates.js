@@ -79,4 +79,166 @@ const CANDIDATES = [
       1  2  4  3
       1S  5  0  4`,
   },
+  {
+    name: "Candidate 8",
+    info: "diag4 4x4, 6 pushes, 2 ways, 8 traps, 14 moves, revisit 0.57, 0 decoys, 2 tempting",
+    solution: "RURUURULURUUUR",
+    text: `
+      #  #  0  E
+      #  5  4  0
+      5  1  0  #
+      0S  2  #  #`,
+  },
+  {
+    name: "Candidate 9",
+    info: "diag4 4x4, 8 pushes, 2 ways, 8 traps, 18 moves, revisit 0.67, 1 decoys, 0 tempting",
+    solution: "RURRRULDRURRURURRU",
+    text: `
+      #  #  1  E
+      #  3  0  3
+      0  3  3  #
+      0S  5  #  #`,
+  },
+  {
+    name: "Candidate 10",
+    info: "diag4 4x4, 9 pushes, 2 ways, 8 traps, 19 moves, revisit 0.68, 1 decoys, 0 tempting",
+    solution: "URURRRULDRURRURURUR",
+    text: `
+      #  #  5  E
+      #  4  1  2
+      2  3  4  #
+      0S  5  #  #`,
+  },
+  {
+    name: "Candidate 11",
+    info: "diag4 4x4, 11 pushes, 2 ways, 9 traps, 27 moves, revisit 0.74, 0 decoys, 2 tempting",
+    solution: "UUURRRLDRURRRRULLDRURRURRUR",
+    text: `
+      #  #  2  E
+      #  0  5  2
+      4  2  5  #
+      0S  5  #  #`,
+  },
+  {
+    name: "Candidate 12",
+    info: "cross3 5x3, 9 pushes, 1 way, 2 traps, 27 moves, revisit 0.67, 0 decoys",
+    solution: "UULURRUULLDRRRUUUDLULUURURU",
+    text: `
+      #  E  #
+      2  0  4
+      5  2  5
+      1  3  2
+      #  0S  #`,
+  },
+  {
+    name: "Candidate 13",
+    info: "cross3 5x3, 11 pushes, 2 ways, 2 traps, 31 moves, revisit 0.71, 0 decoys",
+    solution: "UULURRDRDLLUDURDLLDULDRRDLULULU",
+    text: `
+      #  E  #
+      0  0  4
+      2  3  2
+      2  5  0
+      #  3S  #`,
+  },
+  {
+    name: "Candidate 14",
+    info: "cross3 5x3, 13 pushes, 1 way, 1 traps, 35 moves, revisit 0.74, 0 decoys",
+    solution: "UURRULLURDRDRRURDLURRRRULLDRURURU",
+    text: `
+      #  E  #
+      4  0  3
+      3  0  5
+      2  4  4
+      #  1S  #`,
+  },
+  {
+    name: "Candidate 15",
+    info: "cross3 5x3, 21 pushes, 2 ways, 7 traps, 55 moves, revisit 0.84, 0 decoys",
+    solution: "ULURRRULLURDRDRRURDLURRRRULLDRRRLURRDRDRLURRDRDLURURU",
+    text: `
+      #  E  #
+      5  0  3
+      4  0  5
+      2  3  5
+      #  2S  #`,
+  },
+  {
+    name: "Candidate 16",
+    info: "cfg13 (3x3, edge-mid entry, off-corner exit), 21 pushes, 1 way, 7 traps, 48 moves, revisit 0.81",
+    solution: "DRDDLDDDDURDDLDLDURDDLDLDURDDLDLLURDDDDLUULLDDDD",
+    text: `
+      #  #  3S  #  #
+      #  5  2  1  #
+      #  4  4  5  #
+      #  0  4  3  #
+      #  E  #  #  #`,
+  },
+  {
+    name: "Candidate 17",
+    info: "cfg13 (3x3, edge-mid entry, off-corner exit), 22 pushes, 1 way, 15 traps, 55 moves, revisit 0.85",
+    solution: "DDDRDLDDLURDDDULDDDURDDDULDDDURDDDULDDDURDDDULDDDULDDDD",
+    text: `
+      #  #  0S  #  #
+      #  4  2  1  #
+      #  3  3  4  #
+      #  0  2  4  #
+      #  E  #  #  #`,
+  },
+  {
+    name: "Candidate 18",
+    info: "cfg13 (3x3, edge-mid entry, off-corner exit), 29 pushes, 4 ways, 22 traps, 70 moves, revisit 0.89",
+    solution: "DDDDRDLDDDURDLDDDLRULDDLURDLLRDLLLRULLLRDLLLRULLLRDLLLRULLLRDLLLRDLLLD",
+    text: `
+      #  #  0S  #  #
+      #  5  2  2  #
+      #  4  5  4  #
+      #  0  4  4  #
+      #  E  #  #  #`,
+  },
+  {
+    name: "Candidate 19",
+    info: "cfg13 (3x3, edge-mid entry, off-corner exit), 35 pushes, 4 ways, 31 traps, 86 moves, revisit 0.88",
+    solution: "DDDRDDLDDRDLDDLURDLLRDLLLRULLLRDLLLRULLLRDLLLRULLLRDLLLRULLLDDLURRDDLLULULLDLDRRDDLLLD",
+    text: `
+      #  #  0S  #  #
+      #  5  2  0  #
+      #  3  5  5  #
+      #  0  5  3  #
+      #  E  #  #  #`,
+  },
+  {
+    name: "Candidate 20",
+    info: "icfg6 (3x3 interior, edge-mid to corner), 8 pushes, 1 way, 5 traps, 23 moves, revisit 0.78",
+    solution: "DRURDLLRDDDLURDDDULDDDL",
+    text: `
+      5  3S  1
+      0  3  5
+      E  0  5`,
+  },
+  {
+    name: "Candidate 21",
+    info: "icfg8 (3x3 interior, centre to corner), 9 pushes, 1 way, 5 traps, 23 moves, revisit 0.78",
+    solution: "DRDRULLRUUULDRUUUDLUUUL",
+    text: `
+      E  0  5
+      0  2S  5
+      4  4  0`,
+  },
+  {
+    name: "Candidate 22",
+    info: "2x5 rect, exit straight across, 12 pushes, 3 ways, 7 traps, 30 moves, revisit 0.77",
+    solution: "DRRRURRLULDRRRRRLLURRRRDRRURUR",
+    text: `
+      2S  5  4  0  E
+      2  1  5  4  0`,
+  },
+  {
+    name: "Candidate 23",
+    info: "2x5 rect, exit diagonal, 30 pushes, 6 ways, 17 traps, 71 moves, revisit 0.90",
+    solution: "DRURRRLDRURRDRDLURRDRRRLDRURRRLDLURDRURRRRRRLDLURDRRRRULDRRRURDRURDRRRR",
+    text: `
+      0S  1  5  5  0
+      0  5  1  0  E`,
+  },
 ];

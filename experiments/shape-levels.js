@@ -22,6 +22,15 @@ const { fits, finish } = require("./make-levels.js");
 const SHAPES = {
   // A pure 4x4: in at the lower left, the exit cell in the upper right corner, so it can be reached from either of two cells.
   square4: [". . . E", ". . . .", ". . . .", "S . . ."],
+  // A plus/cross: 5 rows x 3 columns with all four corners of that rectangle
+  // removed. In at the bottom middle, exit at the top middle.
+  cross3: ["# E #", ". . .", ". . .", ". . .", "# S #"],
+  // 2 rows x 5 columns, entry at the top-left cell, exit somewhere in the right
+  // column: "a" straight across (top right), "b" diagonally (bottom right).
+  rect2x5a: ["S . . . E", ". . . . ."],
+  rect2x5b: ["S . . . .", ". . . . E"],
+  // 4x4 with the corners (and their neighbours) at the upper left and lower right removed, leaving a diagonal band: in at the lower left, exit at the upper right.
+  diag4: ["# # . E", "# . . .", ". . . #", "S . # #"],
   // 5 rows x 4 columns: in at row 2, exit at row 4, both in column 1, a wall between them and a matching wall at row 3, column 4.
   notch5x4: [". . . .", "S . . .", "# . . #", "E . . .", ". . . ."],
   // 6 rows x 5 columns: in bottom middle, exit top middle, pillars at columns 2 and 4 in the two middle rows (and, for the second, in row 3 only).
