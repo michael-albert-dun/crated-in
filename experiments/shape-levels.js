@@ -6,7 +6,7 @@
 //
 //   node experiments/shape-levels.js [--shapes all|name,name] [--restarts 6] [--iterations 600]
 //        [--seed 1] [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 13]
-//        [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--out src/candidates.js] [--count 5]
+//        [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--max-states 60000] [--minutes 0] [--out src/candidates.js] [--count 5]
 //   node experiments/shape-levels.js --merge run1.log run2.log ...   (as make-levels.js)
 //
 // A shape is rows of cells: "." open, "#" wall, "E" the exit cell (a column of
@@ -22,6 +22,13 @@ const { fits, finish } = require("./make-levels.js");
 const SHAPES = {
   // A pure 4x4: in at the lower left, the exit cell in the upper right corner, so it can be reached from either of two cells.
   square4: [". . . E", ". . . .", ". . . .", "S . . ."],
+  // 5 rows x 4 columns: in at row 2, exit at row 4, both in column 1, a wall between them and a matching wall at row 3, column 4.
+  notch5x4: [". . . .", "S . . .", "# . . #", "E . . .", ". . . ."],
+  // 6 rows x 5 columns: in bottom middle, exit top middle, pillars at columns 2 and 4 in the two middle rows (and, for the second, in row 3 only).
+  pillars6: [". . E . .", ". . . . .", ". # . # .", ". # . # .", ". . . . .", ". . S . ."],
+  pillars6row3: [". . E . .", ". . . . .", ". # . # .", ". . . . .", ". . . . .", ". . S . ."],
+  // 6 rows x 5 columns: in bottom middle, exit top middle, each corner and its two neighbours removed.
+  nibbles6: ["# # E # #", "# . . . #", ". . . . .", ". . . . .", "# . . . #", "# # S # #"],
   // The older gate-model shapes (T plus a side letter); written out in the exit-cell model by convert.js.
   pillars: [". . . . TU", ". # . # .", "SL . . . ."],
   diamond: ["# . . TU", ". . . .", ". . . .", "SL . . #"],
@@ -38,7 +45,7 @@ function render(shape, heights) {
 function parseArgs(argv) {
   const args = {
     shapes: "all", restarts: 6, iterations: 600, seed: 1, minMoves: 24, maxMoves: 44, minPushes: 6, maxPushes: 13,
-    minTraps: 3, maxWays: 3, maxRevisit: 0.55, count: 5, out: "", maxHeight: 5, maxDecoys: 0, maxUnused: 0,
+    minTraps: 3, maxWays: 3, maxRevisit: 0.55, count: 5, out: "", maxHeight: 5, maxDecoys: 0, maxUnused: 0, maxStates: 60000, minutes: 0,
   };
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i].replace(/^--/, "").replace(/-(\w)/g, (_, ch) => ch.toUpperCase());
@@ -58,13 +65,14 @@ function baseScore(a, args) {
 function evaluate(shape, heights, args, full) {
   const text = render(shape, heights);
   const level = parseLevel(text);
-  const a = analyse(level, { maxStates: 60000 });
+  const a = analyse(level, { maxStates: args.maxStates });
   if (!a || !a.solvable || a.walkable || a.disconnected > 0) return null;
   let score = baseScore(a, args);
   let extra = null;
   if (full) {
     const f = faults(text);
     const solution = solve(level, { maxStates: 100000 });
+    if (solution.status !== "solved") return null;
     const runs = forcedRuns(level, solution.moves);
     extra = { decoys: f ? f.decoys : 99, runs };
     score -= (args.maxDecoys > 0 ? 2 : 8) * extra.decoys + 3 * (Math.max(0, runs.opening - 1) + Math.max(0, runs.closing - 1));
@@ -72,7 +80,7 @@ function evaluate(shape, heights, args, full) {
   return { text, a, score, extra };
 }
 
-function anneal(shape, args, rand) {
+function anneal(shape, args, rand, deadline) {
   const open = shape.join(" ").split(" ").filter((token) => token !== "#" && token !== "E").length;
   let heights = Array.from({ length: open }, () => Math.floor(rand() * 4));
   let current = null;
@@ -84,6 +92,7 @@ function anneal(shape, args, rand) {
   current = evaluate(shape, heights, args, true) || current;
   let best = { ...current, heights: heights.slice() };
   for (let it = 0; it < args.iterations; it += 1) {
+    if (deadline && Date.now() > deadline) break;
     const temperature = 3 * (1 - it / args.iterations) + 0.05;
     const next = heights.slice();
     const i = Math.floor(rand() * open);
@@ -142,10 +151,12 @@ function main() {
   const args = parseArgs(argv);
   const names = args.shapes === "all" ? Object.keys(SHAPES) : args.shapes.split(",");
   const found = new Map();
+  const deadline = args.minutes ? Date.now() + args.minutes * 60000 : 0;
   for (const name of names) {
     const shape = SHAPES[name];
     for (let r = 0; r < args.restarts; r += 1) {
-      const best = anneal(shape, args, mulberry32(args.seed * 7919 + r * 104729 + name.length));
+      if (deadline && Date.now() > deadline) break;
+      const best = anneal(shape, args, mulberry32(args.seed * 7919 + r * 104729 + name.length), deadline);
       if (!best) continue;
       const ok = qualifies(best, args);
       const a = best.a;
