@@ -60,6 +60,22 @@ const LEVELS = [
   },
   {
     name: "Level 6",
+    info: "7x2, 6 pushes (needs two pushes through the same cell)",
+    solution: "RRRRRLLURDRRRRRRURR",
+    text: `
+      #  0  2  #  0  1  E
+      0S  0  0  2  3  0  #`,
+  },
+  {
+    name: "Level 7",
+    info: "7x2, 9 pushes (needs two pushes through the same cell)",
+    solution: "RRRURRRULLULDRRRRRRURURR",
+    text: `
+      #  0  3  #  4  0  E
+      0S  0  0  2  2  4  #`,
+  },
+  {
+    name: "Level 8",
     info: "5x5, 7 pushes",
     solution: "DDDLULLLLUULLUURURR",
     text: `
@@ -70,7 +86,7 @@ const LEVELS = [
       #  #  3  5  0`,
   },
   {
-    name: "Level 7",
+    name: "Level 9",
     info: "3x5, 9 pushes",
     solution: "URRRURURDLDDRRDR",
     text: `
@@ -79,7 +95,7 @@ const LEVELS = [
       0S  5  #  0  E`,
   },
   {
-    name: "Level 8",
+    name: "Level 10",
     info: "3x3, 9 pushes",
     solution: "DRDRULLRUUULDRUUUDLUUUL",
     text: `
@@ -88,7 +104,7 @@ const LEVELS = [
       4  4  0`,
   },
   {
-    name: "Level 9",
+    name: "Level 11",
     info: "4x4, 11 pushes",
     solution: "UUURRRLDRURRRRULLDRURRURRUR",
     text: `
@@ -98,7 +114,7 @@ const LEVELS = [
       0S  5  #  #`,
   },
   {
-    name: "Level 10",
+    name: "Level 12",
     info: "5x2, 12 pushes",
     solution: "DRRRURRLULDRRRRRLLURRRRDRRURUR",
     text: `
@@ -106,7 +122,7 @@ const LEVELS = [
       2  1  5  4  0`,
   },
   {
-    name: "Level 11",
+    name: "Level 13",
     info: "6x6, 10 pushes",
     solution: "UUURURDRDDDDDDRRRURRULUUUUR",
     text: `
@@ -118,7 +134,7 @@ const LEVELS = [
       #  #  0  1  5  0  #`,
   },
   {
-    name: "Level 12",
+    name: "Level 14",
     info: "6x5, 12 pushes",
     solution: "URUUULDLDDDRRRDDRRULLULUULURDRDRRRRRURULUUUUU",
     text: `
@@ -130,7 +146,7 @@ const LEVELS = [
       1S #  3  0  0  #`,
   },
   {
-    name: "Level 13",
+    name: "Level 15",
     info: "5x5, 15 pushes",
     solution: "LLDDLDLDDDDLDRRRLUUURDLUUUDRRUULULDDRRRRURRRUR",
     text: `
@@ -141,7 +157,7 @@ const LEVELS = [
       0  1  3  0  #  #`,
   },
   {
-    name: "Level 14",
+    name: "Level 16",
     info: "5x5, 9 pushes",
     solution: "UURRUURDLULURULDDLRRULLDDLLLL",
     text: `
@@ -152,7 +168,7 @@ const LEVELS = [
       #  0S #  #  #  #`,
   },
   {
-    name: "Level 15",
+    name: "Level 17",
     info: "5x4, 18 pushes",
     solution: "LLDLDRULDDDURDDLDDRRRUULLLRDDLLUUUUURRDLLLRDDLLUUURRULDDDLLRRLLUUUUUURRDDRR",
     text: `

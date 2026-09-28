@@ -175,7 +175,7 @@ entry doorway. The engine still parses those (the tests use them), but the game
 no longer draws them, and `experiments/convert.js` turns a level into the exit-cell
 form: the exit cell goes where the gap was, in place of the tunnel's wall cell or
 in a new row or column outside the room. A tunnel whose wall cell touched other
-open cells would have gained extra ways in, so such exits (Levels 6, 10 and 15)
+open cells would have gained extra ways in, so such exits (Levels 8, 12 and 17)
 were first moved to an edge side of the target, which leaves the solution unchanged.
 
 ## Code
