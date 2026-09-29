@@ -29,6 +29,12 @@ const SHAPES = {
   // A 3x2 block and a 2x3 block, joined through a single crate: entry near the
   // top of the 3x2 (its exit gap), exit near the bottom of the 2x3.
   linked32: [". . E # #", ". . # # #", ". . # # S", "# . . . .", "# # . . ."],
+  // 5x5, a wall spine down the middle column for the top 3 rows, splitting them
+  // into a left 3x2 tower and a right 3x2 tower, both standing on a fully open
+  // 2x5 base. Entry at the bottom-left of the base, exit at the top of the right
+  // tower. (Whether the left tower is actually needed, or just a decoy standing
+  // there, depends on the heights -- see experiments/require-region.js.)
+  twinTower: [". . # . E", ". . # . .", ". . # . .", ". . . . .", "S . . . ."],
   // 3 rows x 5 columns: the top-left and top-right cells removed, and the middle
   // of the bottom row removed. Entry at the bottom left, exit at the bottom right.
   notch3x5: ["# . . . #", ". . . . .", "S . # . E"],
