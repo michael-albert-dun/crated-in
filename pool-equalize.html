@@ -3,26 +3,33 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Crated In (pool)</title>
+    <title>Crated In (equalise pool)</title>
     <link rel="stylesheet" href="styles.css?v=20260927e" />
     <script defer src="src/engine.js?v=20260930a"></script>
-    <script defer src="src/pool.js?v=1"></script>
-    <script defer src="src/pool-config.js?v=1"></script>
+    <script defer src="src/levels-equalize.js?v=1"></script>
+    <script defer src="src/pool-equalize.js?v=1"></script>
+    <script defer src="src/pool-equalize-config.js?v=1"></script>
     <script defer src="src/game.js?v=20260930a"></script>
   </head>
   <body>
     <main>
-      <!-- A disposable batch of levels to compare, nothing else: same game as
-           index.html/test.html, but the whole grid is src/pool.js, overwritten
-           each time there's a new set to look at (see the file's own comment). -->
+      <!-- The "equalise" win condition: no exit cell, no target -- a level is
+           won by reflooring the whole board flat (see engine.js's isFlat).
+           Same game as index.html/test.html/pool.html otherwise: the approved
+           levels (src/levels-equalize.js) followed by a disposable batch to
+           compare and choose from (src/pool-equalize.js, overwritten each
+           time there's a new set to look at). -->
       <section id="menu-screen">
         <header>
-          <h1>Crated In <small>(pool)</small></h1>
+          <h1>Crated In <small>(equalise pool)</small></h1>
         </header>
 
         <p class="howto">
-          A throwaway batch to compare and choose from, not the real level list. Move hints and a cheat
-          button are on, same as the test page. This page's contents change without notice.
+          A different win condition: no exit here, you win by pushing until every
+          stack is the same height (which reflooring then strips to zero, right on
+          screen). The dashed tiles are a throwaway batch to compare and choose
+          from, not yet decided levels; this page's contents change without notice.
+          Move hints and a cheat button are on, same as the test page.
         </p>
 
         <h2>Options</h2>

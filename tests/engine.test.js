@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { parseLevel, createState, step, solve, isValidExit, exitDirs, gateKey, formatLevel } = require("../src/engine.js");
+const { parseLevel, createState, step, solve, isValidExit, exitDirs, gateKey, formatLevel, isFlat } = require("../src/engine.js");
 
 const U = 0;
 const D = 1;
@@ -204,4 +204,33 @@ test("a level has either a target or an exit cell, and the exit needs a way in",
   assert.throws(() => parseLevel("0S E E"), /more than one exit/);
   const level = parseLevel("0S E");
   assert.strictEqual(formatLevel(level).trim(), "0S E");
+});
+
+test("a level with neither a T nor an E is valid: it has no reach-a-cell win condition", () => {
+  const level = parseLevel("0S 1\n1 1");
+  assert.strictEqual(level.target, -1);
+  assert.strictEqual(level.exit, -1);
+  assert.throws(() => parseLevel("1 1"), /needs an S/);
+});
+
+test("isFlat: true only once every non-wall cell is at height 0; walls never count", () => {
+  const level = parseLevel("0S #\n0 0");
+  assert.ok(isFlat(level, Int32Array.from([0, 9, 0, 0])));
+  assert.ok(!isFlat(level, Int32Array.from([0, 9, 1, 0])));
+});
+
+test("solve's flatWin option treats a push that flattens the whole board as a win", () => {
+  // The 3x3 equalise tutorial: a push from the top-middle cell against the
+  // centre spreads onto all four arms, levelling every cell to 1, which then
+  // reflood strips to 0.
+  const level = parseLevel("1 0S 1\n0 2 0\n1 0 1");
+  const plain = solve(level, { maxHeight: 12 });
+  assert.strictEqual(plain.status, "unsolvable"); // no target/exit, so plain solve() can't win
+  const flat = solve(level, { flatWin: true, maxHeight: 12 });
+  assert.strictEqual(flat.status, "solved");
+  assert.strictEqual(flat.moves, "D");
+  assert.strictEqual(flat.pushes, 1);
+  const out = step(level, createState(level), 1); // D
+  assert.strictEqual(out.result, "pushed");
+  assert.ok(isFlat(level, out.state.h));
 });

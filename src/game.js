@@ -22,9 +22,13 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const TEST = window.CRATED_TEST || null;
 // Pool pages get their own storage namespace: their level list is ephemeral (a
 // fresh batch each time), so "solved" checkmarks from a previous batch would be
-// stale and misleading if they shared the test page's key.
-const SETTINGS_KEY = TEST ? (TEST.pool ? "crated-in.pool.play.v1" : "crated-in.test.play.v1") : "crated-in.play.v1";
-const PROGRESS_KEY = TEST ? (TEST.pool ? "crated-in.pool.solved.v1" : "crated-in.test.solved.v1") : "crated-in.solved.v1";
+// stale and misleading if they shared the test page's key. TEST.namespace picks
+// the bucket explicitly (e.g. "pool-equalize", so a second pool page for a
+// different win condition doesn't collide with the main pool's ticks);
+// otherwise it falls back to "pool"/"test" for the existing pages.
+const NAMESPACE = TEST ? TEST.namespace || (TEST.pool ? "pool" : "test") : null;
+const SETTINGS_KEY = NAMESPACE ? `crated-in.${NAMESPACE}.play.v1` : "crated-in.play.v1";
+const PROGRESS_KEY = NAMESPACE ? `crated-in.${NAMESPACE}.solved.v1` : "crated-in.solved.v1";
 const HINT_COLORS = { walk: "#009e73", push: "#e69f00", drop: "#d55e00" }; // Okabe-Ito
 const KEY_DIRS = {
   ArrowUp: 0, w: 0, W: 0,
@@ -914,11 +918,21 @@ function undo() {
   updateHud();
 }
 
+// Levels with no target and no exit cell have no "walk somewhere" win
+// condition at all: they win by reflooring the whole board flat (isFlat, in
+// engine.js). Unlike the exit-based game, that flattening is the whole point
+// to *see* happen, so these levels never hide it behind the running offset
+// (below) that makes the exit game's numbers count up instead of resetting.
+function isFlatWinLevel(level) {
+  return level.target < 0 && level.exit < 0;
+}
+
 function move(d) {
   finishAnimation();
   const cur = state.current;
   if (cur.status !== "playing") return;
   const { level } = state;
+  const flatWin = isFlatWinLevel(level);
   const opts = { soft: state.settings.gentle, justEnough: state.settings.justEnough };
   const from = cur.game.pos;
   const to = level.nbrs[from][d];
@@ -933,11 +947,21 @@ function move(d) {
     return;
   }
 
-  const next = { game: out.state, moves: cur.moves + 1, pushes: cur.pushes, offset: cur.offset + (out.reflooded || 0), status: "playing", message: "" };
+  const next = {
+    game: out.state, moves: cur.moves + 1, pushes: cur.pushes,
+    offset: flatWin ? 0 : cur.offset + (out.reflooded || 0),
+    status: "playing", message: "",
+  };
   let phases;
   if (out.result === "pushed") {
     next.pushes += 1;
     phases = pushPhases(cur.game, out, d);
+    if (flatWin && isFlat(level, out.state.h)) {
+      next.status = "won";
+      next.message = state.levelIndex + 1 < LEVELS.length ? "" : "That was the last level.";
+      state.solved.add(state.levelIndex);
+      saveStorage();
+    }
   } else if (out.result === "won") {
     next.status = "won";
     next.message = state.levelIndex + 1 < LEVELS.length ? "" : "That was the last level.";
@@ -960,7 +984,8 @@ function move(d) {
 function advice() {
   const cur = state.current;
   if (!state.cheat || cur.status !== "playing") return null;
-  const out = solve(state.level, { from: cur.game, justEnough: state.settings.justEnough, maxHeight: 12 });
+  const flatWin = isFlatWinLevel(state.level);
+  const out = solve(state.level, { from: cur.game, justEnough: state.settings.justEnough, maxHeight: 12, flatWin });
   return out;
 }
 
@@ -989,7 +1014,9 @@ function updateHud() {
     box.textContent = `Peek: go ${DIR_WORDS[DIRS.findIndex((dir) => dir.name === result.moves[0])]} next (${result.moves.length} moves left).`;
   } else if (result.status === "unsolvable") {
     box.className = "dead";
-    box.textContent = "This room can't be escaped any more. Undo, or restart.";
+    box.textContent = isFlatWinLevel(state.level)
+      ? "This board can't be equalised any more. Undo, or restart."
+      : "This room can't be escaped any more. Undo, or restart.";
   } else {
     box.textContent = "Couldn't tell: the search limit was reached.";
   }

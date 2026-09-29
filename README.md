@@ -5,7 +5,8 @@ A box-manipulation puzzle on a grid.
 This is an early design sketch. There is a rules engine, headless experiments,
 a play UI (`index.html`), a test page (`test.html`, the same game with test tools)
 and a pool page (`pool.html`, the same game showing a disposable batch of levels
-to choose between).
+to choose between). A second win condition is being explored alongside the
+original exit-based one; see "The equalise variant" below.
 
 The fiction: the door slams behind you and you're crated in; across the room a
 column of light glows, your only way out. You have a wand that is supposed to move
@@ -26,6 +27,8 @@ python3 -m http.server 4176 --bind 127.0.0.1
 Then open http://127.0.0.1:4176/ for the home screen (`?level=3` jumps straight to
 a level), http://127.0.0.1:4176/test.html for the test UI, or
 http://127.0.0.1:4176/pool.html for whatever batch is currently in the pool.
+http://127.0.0.1:4176/pool-equalize.html is the equivalent pool page for the
+"equalise" win condition (see below).
 
 ### Play UI (`index.html`)
 
@@ -113,6 +116,82 @@ entry's name prefix to `POOL`/"Option N" automatically. Settings and solved
 ticks use their own storage keys (`crated-in.pool.*`), separate from both the
 main page and the test page.
 
+## The equalise variant
+
+A second win condition, being explored as a separate set of levels: instead of
+reaching an exit, you win by pushing until every stack in the room is the same
+height. Reflooring already keeps the lowest non-wall height at 0 after every
+move (see Mechanics, below), so "every stack equal" and "every stack at 0" are
+the same state -- the win is a push that leaves the whole board flat, and you
+*see* that happen: unlike the exit game, which hides reflooring behind a
+running offset so the displayed numbers just keep counting up, these levels
+show the true (dropping) height, since watching the board go flat is the
+point.
+
+These levels have no target and no exit cell at all (`isFlat(level, h)` in
+`src/engine.js` is the only win condition they have); `solve(level, {
+flatWin: true })` treats a push that flattens the board as a win the same way
+it treats stepping onto an exit. Everything else -- walking, pushing, dying,
+reflooring itself -- is unchanged; only the win check differs (for now: pushing
+against a pile exactly one higher is a candidate for a future rule change,
+independent of this variant).
+
+`pool-equalize.html` is the equalise counterpart of `pool.html`: same game and
+test tools, but `src/levels-equalize.js` (the approved levels, hand-curated,
+holds a 3x3 tutorial so far) followed by `src/pool-equalize.js` (the current
+disposable batch, dashed tiles, same "overwritten each round" convention as
+`pool.js`). Its settings and solved ticks use their own storage keys
+(`crated-in.pool-equalize.*`, via `game.js`'s `TEST.namespace`), so they don't
+collide with the exit-based pool's.
+
+The tutorial level (`src/levels-equalize.js`, Level 1): a plain 3x3, corners at
+height 1, the four edge-middle cells at 0, the centre at 2. Standing on any
+edge-middle cell and pushing the centre spreads one copy onto each of the four
+edge-middle cells (their common neighbour), levelling every cell in the room to
+1 -- which reflood then strips to 0 in the same move. One push both equalises
+and wins.
+
+### Generating levels: reverse construction
+
+`experiments/reverse-equalize.js` builds a level backward from the solved state
+instead of building a board and checking whether it happens to be solvable: it
+starts at a random open cell on an all-zero (flat) board and repeatedly applies
+one of two reverse moves --
+
+- **reverse-walk**: step to a neighbour at most 1 different in height (walking
+  is its own inverse, since the gap rule is symmetric).
+- **reverse-unpush**: pick a neighbouring pile, add back however many layers
+  reflooring would have stripped after the push it undoes (0 or more, however
+  many keep every cell non-negative), then undo the spread itself (+1 on the
+  pile, -1 on each of its neighbours, including the player's own cell).
+  Verified by simulating the *forward* push from the candidate and checking it
+  reproduces the state before, exactly.
+
+Whatever is left after the chosen number of reverse moves is the level's start.
+A solution of that many moves is known to exist, so the only way a board can be
+worse than intended is a *shortcut* -- a shorter solution existing by accident
+-- checked by running `solve(level, { flatWin: true })` and rejecting unless
+its shortest solution is exactly that many moves.
+
+```sh
+node experiments/reverse-equalize.js [--shapes all|name,name] [--attempts 300] [--seed 1]
+     [--min-steps 3] [--max-steps 8] [--min-pushes 1] [--max-pushes 6]
+     [--layer-max 2] [--walk-bias 0.35] [--out src/pool-equalize.js] [--count 5]
+```
+
+Shapes come from `experiments/equalize-shapes.js`, a separate and much smaller
+set from `shape-levels.js`'s `SHAPES` (so far just `square3`, the tutorial's
+plain 3x3): these carry no entry or exit gate, since this variant picks its own
+start cell while constructing rather than being given one.
+
+Unlike the exit-based generators, this one hasn't yet been through a round of
+picking by eye, tuning the length/push window, or checking against a design
+principle the way "alcove decoys" was for the original game -- it produces
+solvable, shortcut-free boards and nothing more opinionated than that yet.
+Initial heights can run fairly tall (`--layer-max` and `--max-steps` are the
+knobs to rein that in) since each reverse-unpush is free to add back any number
+of reflood layers up to `--layer-max`.
+
 ## The board
 
 Play is on a rectangular grid. Each cell is in exactly one of these states:
@@ -190,6 +269,12 @@ were first moved to an edge side of the target, which leaves the solution unchan
   above). Undo is a history of snapshots. `src/levels.js` holds the rooms
   in level text format, each with its shortest known solution. `experiments/convert.js`
   converts old-style levels to the exit-cell form.
+- `pool-equalize.html` and `src/pool-equalize-config.js`: the pool page for the
+  equalise variant (see above); `src/levels-equalize.js` holds its approved
+  levels and `src/pool-equalize.js` its current disposable batch, same
+  approved/candidate relationship as `levels.js`/`candidates.js`.
+  `experiments/reverse-equalize.js` generates the batch by reverse construction
+  from the solved state, over shapes in `experiments/equalize-shapes.js`.
 - `experiments/generate.js`: hill-climbing level generator (see below).
 - `experiments/explore.js`: random boards solved by breadth-first search over
   (heights, position). Run `node experiments/explore.js`; the flags are listed

@@ -60,7 +60,10 @@ function parseLevel(text) {
       }
     });
   });
-  if (start < 0 || (target < 0 && exit < 0)) throw new Error("Level needs an S and a T or an E");
+  // A level with neither a T nor an E is valid: it has no "reach this cell" win
+  // condition at all, for variants (see isFlat) whose win condition is a
+  // property of the whole board instead of a place to walk to.
+  if (start < 0) throw new Error("Level needs an S");
   if (target >= 0 && exit >= 0) throw new Error("Level has both a T and an E");
   const level = makeLevel(width, height, wall, heights, start, target, exitDir, startDir, exit);
   if (exit >= 0 && !level.exitStep.some((d) => d >= 0)) throw new Error("Exit cell has no open neighbour");
@@ -217,6 +220,19 @@ function reflood(level, h) {
   return min;
 }
 
+// True when every non-wall cell is at height 0. Reflood already keeps the
+// minimum non-wall height at 0 after every move (see reflood above), so this
+// is also exactly "every non-wall cell is the same height": the win condition
+// for the equalise variant (see experiments/reverse-equalize.js). Levels with
+// no target and no exit cell have no other win condition, so this is the only
+// way to win them.
+function isFlat(level, h) {
+  for (let i = 0; i < h.length; i += 1) {
+    if (!level.wall[i] && h[i] !== 0) return false;
+  }
+  return true;
+}
+
 // Top block of `at` explodes: it loses one, and each neighbouring non-wall
 // cell (including the player's) gains one. Mutates h.
 function spread(level, h, at) {
@@ -281,6 +297,11 @@ function stateKey(state) {
 // ask whether a half-played board can still be won.
 // opts.noPushes restricts the search to walking, which answers "could you just
 // walk there?" without any spreading.
+// opts.flatWin also treats a push that leaves the whole board flat (isFlat) as
+// a win, for levels with no target and no exit cell (the equalise variant).
+// step() itself never reports this: it stays exit-cell-only, so play (game.js)
+// can run the ordinary push animation and check flatness afterward instead of
+// having a push silently double as a "won" result.
 // "Hard" and "soft" mode solve identically (a fatal drop is never useful), so
 // the solver ignores opts.soft.
 function solve(level, opts = {}) {
@@ -299,13 +320,15 @@ function solve(level, opts = {}) {
       const out = step(level, state, d, { justEnough: opts.justEnough });
       if (out.result === "blocked" || out.result === "died") continue;
       if (out.result === "pushed" && opts.noPushes) continue;
-      if (out.result === "won") {
+      const won = out.result === "won" || (opts.flatWin && out.result === "pushed" && isFlat(level, out.state.h));
+      if (won) {
         let moves = DIRS[d].name;
         let pushes = 0;
         for (let i = head; i > 0; i = parent[i]) {
           moves = DIRS[moveInto[i]].name + moves;
           if (pushInto[i]) pushes += 1;
         }
+        if (out.result === "pushed") pushes += 1;
         return { status: "solved", moves, pushes, states: states.length };
       }
       if (out.result === "pushed" && Math.max(...out.state.h) > maxHeight) {
@@ -329,5 +352,5 @@ function solve(level, opts = {}) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, gateIndex, formatLevel, createState, reflood, step, solve };
+  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, gateIndex, formatLevel, createState, reflood, isFlat, step, solve };
 }
