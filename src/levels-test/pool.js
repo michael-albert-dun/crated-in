@@ -5,7 +5,8 @@
 // whatever's here can be discarded; nothing else in the game refers to it.
 // See pool.html.
 //
-// Cleared out (2026-09-30): the 4x4 line-push batch that was here was decided
-// -- all three kept (one tightened, one had its bottom-right corner walled
-// off) as src/levels/levels-linepush.js.
+// Cleared out (2026-09-30): the "going around in circles" ring-room batch
+// that was here was decided -- all three kept, as Levels 1-3 of
+// src/levels/levels-linepush.js (ahead of the earlier 4x4 batch, which is
+// now Levels 4-6 there).
 const POOL = [];

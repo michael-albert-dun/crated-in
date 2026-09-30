@@ -206,6 +206,19 @@ existing levels don't carry over unchanged, and new ones need to leave a
 runway behind tall piles the way a Sokoban level needs clear space behind a
 box. Counted as a push for move/solve bookkeeping, same as an ordinary push.
 
+First levels for this variant: `src/levels/levels-linepush.js` (see Code,
+below). Levels 1-3 there are a design pattern worth naming: a ring-shaped room
+(a wall block splits it into a loop -- a top corridor, a single-cell connector
+down each side, a fully open bottom row) where the top alone can't quite reach
+the exit, so you loop through the bottom and approach from the other side.
+The best version of this isn't a dead end that simply routes you around a
+wall -- it's a genuine *trap*: a push along the top is real and tempting (it
+gets you most of the way, looking clean) but continuing is a fatal drop, and
+the loop exists because the connector cell next to the exit needs feeding
+from *both* directions (the abandoned top push leaves it one short; looping
+back and pushing the same connector from below supplies the rest). Level 1 is
+exactly that, hand-designed and proven in 24 states.
+
 ## Objective
 
 Initial version is a maze problem: reach the exit. Only reachability matters,
@@ -328,8 +341,9 @@ strategically placed wall, or a higher height cap).
 ## Code
 
 Level data lives in two directories, split by how settled it is: `src/levels/`
-holds the "production" lists (`levels.js`, `levels-equalize.js`) -- the real
-levels a page ships with -- and `src/levels-test/` holds everything still
+holds the "production" lists (`levels.js`, `levels-equalize.js`,
+`levels-linepush.js`) -- the real levels a page ships with -- and
+`src/levels-test/` holds everything still
 provisional (`candidates.js`, appendable, for review; `pool.js` and
 `pool-equalize.js`, ephemeral, overwritten each round -- see Pool UI above).
 Promoting a level is a manual copy from one directory to the other, same as
@@ -351,6 +365,14 @@ before; nothing about that workflow changed, just where the files sit.
   approved/candidate relationship as `levels/levels.js`/`levels-test/candidates.js`.
   `experiments/reverse-equalize.js` generates the batch by reverse construction
   from the solved state, over shapes in `experiments/equalize-shapes.js`.
+- `src/levels/levels-linepush.js`: approved levels for line push. Not yet
+  wired into a page of its own -- play them via `test.html` or `pool.html`
+  with the "Line push" checkbox on. Levels 1-3 are "going around in circles"
+  rooms: a wall block splits the room into a loop (a top corridor, a
+  single-cell connector down each side, a fully open bottom row), where the
+  top alone can't quite reach the exit and looping through the bottom does.
+  Levels 4-6 are a plain open 4x4 (see the Line push variant, below, for how
+  Levels 5-6 were tightened).
 - `experiments/generate.js`: hill-climbing level generator (see below).
 - `experiments/explore.js`: random boards solved by breadth-first search over
   (heights, position). Run `node experiments/explore.js`; the flags are listed
