@@ -1,5 +1,5 @@
-// Prints the analysis metrics for every level in src/levels.js, to see what the
-// measures say about levels we already like or dislike.
+// Prints the analysis metrics for every level in src/levels/levels.js, to see
+// what the measures say about levels we already like or dislike.
 //
 //   node experiments/rate-levels.js
 const fs = require("fs");
@@ -7,7 +7,7 @@ const path = require("path");
 const { parseLevel } = require("../src/engine.js");
 const { analyse } = require("./analyse.js");
 
-const LEVELS = new Function(fs.readFileSync(path.join(__dirname, "../src/levels.js"), "utf8") + "; return LEVELS;")();
+const LEVELS = new Function(fs.readFileSync(path.join(__dirname, "../src/levels/levels.js"), "utf8") + "; return LEVELS;")();
 
 console.log("level  size  moves pushes cells  ways traps  dead%  revisit unused% disc  states");
 LEVELS.forEach((lv, i) => {

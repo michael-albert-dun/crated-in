@@ -28,7 +28,7 @@
 // genuinely divergent board, it just makes checking it slower.
 //
 // Prints running counts per pile-count, and "FOUND {json}" for every solvable
-// configuration (as level text, ready to paste into src/pool-equalize.js),
+// configuration (as level text, ready to paste into src/levels-test/pool-equalize.js),
 // so a long run can be left going and its log inspected afterward even if it
 // self-stops (--minutes) before finishing.
 const { makeLevel, solve } = require("../src/engine.js");

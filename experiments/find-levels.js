@@ -9,7 +9,7 @@
 //
 //   node experiments/find-levels.js [--sizes 5x5,6x6] [--boards 3] [--iterations 250]
 //        [--seed 1] [--wall 0.1] [--min-pushes 4] [--max-length 45] [--max-ways 4]
-//        [--max-initial 5] [--max-unused 0.35] [--max-states 60000] [--out src/candidates.js]
+//        [--max-initial 5] [--max-unused 0.35] [--max-states 60000] [--out src/levels-test/candidates.js]
 //
 // Initial heights never exceed --max-initial (pushes can build higher in play;
 // the analysis ignores states with a pile above 6). With --out, accepted boards

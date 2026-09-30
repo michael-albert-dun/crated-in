@@ -20,11 +20,13 @@ test("walking works across a difference of at most 1", () => {
   assert.strictEqual(step(level, state, R).result, "won");
 });
 
-test("stepping off a drop of 2 kills you, or is blocked in soft mode", () => {
+test("stepping off a drop of 2 kills you, or is blocked (reason 'drop') in soft mode", () => {
   const level = parseLevel("2S 0T");
   const state = createState(level);
   assert.strictEqual(step(level, state, R).result, "died");
-  assert.strictEqual(step(level, state, R, { soft: true }).result, "blocked");
+  const blocked = step(level, state, R, { soft: true });
+  assert.strictEqual(blocked.result, "blocked");
+  assert.strictEqual(blocked.reason, "drop");
 });
 
 test("edges and walls block", () => {
@@ -285,4 +287,53 @@ test("solve's flatWin option treats a push that flattens the whole board as a wi
   const out = step(level, createState(level), 1); // D
   assert.strictEqual(out.result, "pushed");
   assert.ok(isFlat(level, out.state.h));
+});
+
+test("linePush off: a push still spreads to every neighbour of the pile, as before", () => {
+  const level = parseLevel("0 0 0\n0S 4 0\n0 0 0");
+  const out = step(level, createState(level), R);
+  assert.strictEqual(out.result, "pushed");
+  // Centre loses 1; all four of its neighbours (behind you, ahead, and both
+  // orthogonal) gain 1 -- the corners aren't neighbours of the centre, so
+  // they're untouched either way.
+  assert.deepStrictEqual(heights(out.state), [0, 1, 0, 1, 3, 1, 0, 1, 0]);
+});
+
+test("linePush on: a push only ever reaches your own cell and the cell past the pile", () => {
+  const level = parseLevel("0 0 0\n0S 4 0\n0 0 0");
+  const out = step(level, createState(level), R, { linePush: true });
+  assert.strictEqual(out.result, "pushed");
+  // Only (1,0) [you] and (1,2) [past the pile] change; the orthogonal
+  // neighbours (0,1) and (2,1) are untouched, unlike the plain push above.
+  assert.deepStrictEqual(heights(out.state), [0, 0, 0, 1, 3, 1, 0, 0, 0]);
+});
+
+test("linePush on: the push fails outright if there's no room past the pile (a wall, a pillar, or the edge)", () => {
+  const wallBeyond = parseLevel("0S 4 #");
+  const wallOut = step(wallBeyond, createState(wallBeyond), R, { linePush: true });
+  assert.strictEqual(wallOut.result, "blocked");
+  assert.strictEqual(wallOut.reason, "push");
+  assert.deepStrictEqual(heights(wallOut.state), [0, 4, 0]); // unchanged
+
+  const edgeBeyond = parseLevel("0S 4");
+  const edgeOut = step(edgeBeyond, createState(edgeBeyond), R, { linePush: true });
+  assert.strictEqual(edgeOut.result, "blocked");
+  assert.strictEqual(edgeOut.reason, "push");
+});
+
+test("linePush + justEnough: each restricted spread repeats until the gap is at most 1", () => {
+  const level = parseLevel("0S 5 0");
+  const out = step(level, createState(level), R, { linePush: true, justEnough: true });
+  assert.strictEqual(out.result, "pushed");
+  assert.strictEqual(out.spreads, 2);
+  // Two rounds of (to-1, from+1, beyond+1) from [0,5,0]: [1,4,1], then
+  // [2,3,2] (gap 1, stop) -- all >= 1, so reflood strips the shared 2.
+  assert.strictEqual(out.reflooded, 2);
+  assert.deepStrictEqual(heights(out.state), [0, 1, 0]);
+});
+
+test("linePush changes what's solvable: a pile with a wall directly behind it can no longer be pushed at all", () => {
+  const level = parseLevel("0S 4T #");
+  assert.strictEqual(solve(level).status, "solved"); // plain push: only "behind you" is a real neighbour anyway, so it still works
+  assert.strictEqual(solve(level, { linePush: true }).status, "unsolvable"); // linePush: blocked outright, and there's nowhere else to go
 });

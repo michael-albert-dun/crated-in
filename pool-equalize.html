@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Crated In (equalise pool)</title>
     <link rel="stylesheet" href="styles.css?v=20260927e" />
-    <script defer src="src/engine.js?v=20260930b"></script>
-    <script defer src="src/levels-equalize.js?v=1"></script>
-    <script defer src="src/pool-equalize.js?v=1"></script>
+    <script defer src="src/engine.js?v=20260930d"></script>
+    <script defer src="src/levels/levels-equalize.js?v=1"></script>
+    <script defer src="src/levels-test/pool-equalize.js?v=1"></script>
     <script defer src="src/pool-equalize-config.js?v=1"></script>
-    <script defer src="src/game.js?v=20260930c"></script>
+    <script defer src="src/game.js?v=20260930e"></script>
   </head>
   <body>
     <main>
       <!-- The "equalise" win condition: no exit cell, no target -- a level is
            won by reflooring the whole board flat (see engine.js's isFlat).
            Same game as index.html/test.html/pool.html otherwise: the approved
-           levels (src/levels-equalize.js) followed by a disposable batch to
-           compare and choose from (src/pool-equalize.js, overwritten each
+           levels (src/levels/levels-equalize.js) followed by a disposable batch to
+           compare and choose from (src/levels-test/pool-equalize.js, overwritten each
            time there's a new set to look at). -->
       <section id="menu-screen">
         <header>

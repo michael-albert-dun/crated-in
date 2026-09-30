@@ -386,4 +386,39 @@ const CANDIDATES = [
       0  0  3  3  #
       0S  0  #  #  #`,
   },
+  // The three below are on Level 9's exact shape again, this time for the
+  // "line push" variant (see README, Mechanics): a push only ever reaches you
+  // and the square past the pile, and fails outright with no room there. They
+  // aren't essential the way the slide demos are -- these boards were found
+  // by random search filtered on push count, not on "unsolvable without it" --
+  // the point here is just to feel out whether the mechanic's consistent,
+  // always-two-cell footprint makes a multi-push level easier to hold in your
+  // head than the classic push's corner/edge/interior-dependent one.
+  {
+    name: "Line push demo 1 (needs Line push)",
+    info: "3x5, 3 pushes, 9 moves",
+    solution: "RUUURRRDR",
+    text: `
+      #  1  5  0  #
+      4  4  4  1  5
+      0S  0  #  3  E`,
+  },
+  {
+    name: "Line push demo 2 (needs Line push)",
+    info: "3x5, 5 pushes, 11 moves",
+    solution: "URRRRRRRRDR",
+    text: `
+      #  4  2  4  #
+      1  5  5  5  1
+      0S  3  #  5  E`,
+  },
+  {
+    name: "Line push demo 3 (needs Line push)",
+    info: "3x5, 7 pushes, 21 moves",
+    solution: "URRRRULDRDLURRRRRRRRD",
+    text: `
+      #  2  2  3  #
+      0  0  3  4  0
+      0S  1  #  1  E`,
+  },
 ];

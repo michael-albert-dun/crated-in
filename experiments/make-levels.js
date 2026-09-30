@@ -1,12 +1,12 @@
 // Generates tidy candidate levels for a stretch of the difficulty ramp:
 // hill-climb with find-levels.js, tidy each board (tidy.js), re-analyse it and
 // keep only boards that still fit the target window and have no unused cells.
-// Writes the best few, spread across the window, to src/candidates.js.
+// Writes the best few, spread across the window, to src/levels-test/candidates.js.
 //
 //   node experiments/make-levels.js [--sizes 5x5,6x5,6x6] [--seeds 1-12] [--count 5]
 //        [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 11]
-//        [--min-traps 3] [--max-ways 3] [--out src/candidates.js]
-//   node experiments/make-levels.js --merge run1.log run2.log ... [--count 5] [--out src/candidates.js]
+//        [--min-traps 3] [--max-ways 3] [--out src/levels-test/candidates.js]
+//   node experiments/make-levels.js --merge run1.log run2.log ... [--count 5] [--out src/levels-test/candidates.js]
 // Each run prints its kept boards as "FOUND {json}" lines, so several runs can go in
 // parallel (different --seeds) and be merged afterwards.
 const fs = require("fs");
@@ -173,7 +173,7 @@ ${c.text.split("\n").map((l) => "      " + l).join("\n")}\`,
   writeOut(args.out, unique.length, body);
 }
 
-// Writes to src/candidates.js (appendable, growing) or src/pool.js (ephemeral,
+// Writes to src/levels-test/candidates.js (appendable, growing) or src/levels-test/pool.js (ephemeral,
 // fully overwritten each time -- see that file's own comment): the variable
 // name and each entry's name prefix ("Candidate"/"Option") follow from which.
 function writeOut(out, count, body) {
@@ -184,7 +184,7 @@ function writeOut(out, count, body) {
     ? `// A throwaway batch of levels to look at and choose between, in level text
 // format. Ephemeral by design: the whole file gets overwritten with a fresh
 // POOL every time there's a new batch to show, rather than growing forever the
-// way src/candidates.js was starting to. Once a choice is made, whatever's here
+// way src/levels-test/candidates.js was starting to. Once a choice is made, whatever's here
 // can be discarded; nothing else in the game refers to it. See pool.html.
 const POOL = [
 `

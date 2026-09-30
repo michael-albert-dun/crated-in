@@ -63,7 +63,7 @@ cap" — and tune the caps for speed accordingly (small caps classify these
 just as correctly as huge ones, much faster). This is also, incidentally, a
 nice bit of game-design trivia in its own right: sparse boards are exactly
 the ones prone to this "runs away forever" failure mode, which the
-reverse-constructed levels in `src/pool-equalize.js` can never produce (they
+reverse-constructed levels in `src/levels-test/pool-equalize.js` can never produce (they
 always carry a known finite solution by construction).
 
 ## Results
@@ -119,7 +119,7 @@ much they'd change the question rather than just the parameters:
 
 If a solvable config does turn up in any follow-up: pick a spread by
 move/push count (same instinct as the rest of the level-search pipeline) and
-stage them in `src/pool-equalize.js` for a look in `pool-equalize.html`. These
+stage them in `src/levels-test/pool-equalize.js` for a look in `pool-equalize.html`. These
 would be a genuinely different *kind* of level from the reverse-constructed
 batch already there: no known-short solution baked in by construction, so
 likely a longer, more exploratory solve — visiting most of the room before

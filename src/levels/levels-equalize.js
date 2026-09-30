@@ -1,8 +1,8 @@
 // Approved levels for the "equalise" win condition, in level text format (same
-// format as src/levels.js, but no T or E: these levels have no target or exit
+// format as src/levels/levels.js, but no T or E: these levels have no target or exit
 // cell, since the win condition is a property of the whole board -- see
 // isFlat in engine.js). This is a hand-curated list: pick from a batch in
-// src/pool-equalize.js (see pool-equalize.html and
+// src/levels-test/pool-equalize.js (see pool-equalize.html and
 // experiments/reverse-equalize.js) and paste the entry in here once approved.
 const LEVELS_EQUALIZE = [
   {

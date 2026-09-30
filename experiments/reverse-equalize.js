@@ -24,14 +24,14 @@
 //
 //   node experiments/reverse-equalize.js [--shapes all|name,name] [--attempts 300] [--seed 1]
 //        [--min-steps 3] [--max-steps 8] [--min-pushes 1] [--max-pushes 6]
-//        [--layer-max 2] [--walk-bias 0.35] [--out src/pool-equalize.js] [--count 5]
+//        [--layer-max 2] [--walk-bias 0.35] [--out src/levels-test/pool-equalize.js] [--count 5]
 //
 // Shapes come from experiments/equalize-shapes.js (a separate, smaller set from
 // shape-levels.js's SHAPES: these carry no entry/exit gate, since this variant
-// picks its own start cell while constructing). Writes src/pool-equalize.js
-// (POOL_EQUALIZE, matching src/pool.js's role for the exit-based game): review
+// picks its own start cell while constructing). Writes src/levels-test/pool-equalize.js
+// (POOL_EQUALIZE, matching src/levels-test/pool.js's role for the exit-based game): review
 // in pool-equalize.html, then copy anything worth keeping into
-// src/levels-equalize.js by hand.
+// src/levels/levels-equalize.js by hand.
 const fs = require("fs");
 const path = require("path");
 const { makeLevel, parseLevel, step, solve } = require("../src/engine.js");
@@ -168,7 +168,7 @@ function attempt(shape, args, rand) {
 function parseArgs(argv) {
   const args = {
     shapes: "all", attempts: 300, seed: 1, minSteps: 3, maxSteps: 8, minPushes: 1, maxPushes: 6,
-    layerMax: 2, walkBias: 0.35, maxStates: 200000, count: 5, out: "src/pool-equalize.js",
+    layerMax: 2, walkBias: 0.35, maxStates: 200000, count: 5, out: "src/levels-test/pool-equalize.js",
   };
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i].replace(/^--/, "").replace(/-(\w)/g, (_, ch) => ch.toUpperCase());
@@ -178,8 +178,8 @@ function parseArgs(argv) {
 }
 
 // Picks `count` boards spread across the length window and writes them to
-// src/pool-equalize.js (POOL_EQUALIZE), the same way make-levels.js spreads
-// picks for src/pool.js.
+// src/levels-test/pool-equalize.js (POOL_EQUALIZE), the same way make-levels.js spreads
+// picks for src/levels-test/pool.js.
 function finish(all, args) {
   if (!all.length) {
     console.log("nothing to write");
@@ -215,7 +215,7 @@ function writeOut(out, count, body) {
 // pool-equalize.html and experiments/reverse-equalize.js). Ephemeral by design:
 // the whole file gets overwritten with a fresh POOL_EQUALIZE every time there's
 // a new batch to show. Once a choice is made, copy the entry into
-// src/levels-equalize.js by hand and forget this file until the next batch.
+// src/levels/levels-equalize.js by hand and forget this file until the next batch.
 const POOL_EQUALIZE = [
 `;
   fs.writeFileSync(path.resolve(out), header + body + "\n];\n");

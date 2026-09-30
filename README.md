@@ -94,8 +94,8 @@ level menu), and the play screen gains a level dropdown, a level info line (size
 pushes and the finder's measures) and a Cheat button (`c` does the same). The
 test options are move hints, which outline each neighbouring square green for a
 walk, amber for a push and red for a fatal drop, plus gentle mode, the
-just-enough push variant, and slide-or-climb (see Mechanics below). Its
-settings and solved ticks are stored separately from the main page
+just-enough push variant, slide-or-climb, and line push (see Mechanics below).
+Its settings and solved ticks are stored separately from the main page
 (`crated-in.test.*` keys).
 
 `c` toggles cheat mode: below the board it says whether the position can still
@@ -108,7 +108,7 @@ engine's `solve(level, { from: state })`.
 The same game again, built the same way as the test page (`src/pool-config.js`
 sets `window.CRATED_TEST` with `pool: true`, no real levels, no candidates.js),
 but for one purpose: showing a disposable batch of levels to choose between.
-`src/pool.js` holds the whole list as `POOL`, and the file is meant to be fully
+`src/levels-test/pool.js` holds the whole list as `POOL`, and the file is meant to be fully
 **overwritten** with a fresh batch each time, not appended to the way
 `candidates.js` is, so it never accumulates old decided-and-forgotten options.
 `experiments/make-levels.js`'s `finish()` and `experiments/pick-shapes.js`
@@ -171,6 +171,41 @@ Instead of one spread per push, a push could repeat the spread until the gap is
 1 or less, so a push always ends with you able to walk. The engine supports this
 as `step(..., { justEnough: true })`, which the experiment compares.
 
+### Variant to try: line push
+
+The design problem this is trying to answer (Michael, 2026-09-30): difficulty
+scales super-linearly with the number of pushes a level needs, because each
+push is a big, hard-to-hold-in-your-head state change, *and* its footprint
+depends on where the pushed pile happens to sit (2 neighbours in a corner, 3
+on an edge, 4 in the open) -- so there's no one consistent rule to learn, only
+a family of cases. Worse, unlike Sokoban, getting stuck here can be a genuinely
+*global* property of the board (see the equalise variant's sparse-start search
+above, where whole boards diverge for reasons no local look can catch), so
+there's no visible "you've made a mess" signal the way a boxed-in Sokoban
+crate gives you.
+
+The `linePush` option (`step(..., { linePush: true })`; the "Line push"
+checkbox on `test.html`/`pool.html`, off by default, independent of
+`slideClimb` -- that one's about the gap=1 case, this is about gap>=2) is a
+first attempt at both problems together:
+
+- **Consistent footprint**: a push only ever reaches two cells, always the
+  same two relative to you -- your own square and the square just past the
+  pile, same direction (`spreadLine`, not `spread`) -- never the orthogonal
+  neighbours, regardless of whether the pile sits in a corner, on an edge, or
+  in the open.
+- **A real, local "you can't do that"**: if there's no cell past the pile to
+  spread into (a wall, a pillar, the room's edge), the push doesn't happen at
+  all -- `"blocked"`, `reason: "push"` -- the same way Sokoban won't push a
+  box into a wall. Move hints (`test.html`/`pool.html`) reflect this too:
+  a direction that would be blocked this way just isn't painted as a push.
+
+This is a real tightening, not just a restriction: a pile with a wall directly
+behind it in every useful direction becomes permanently unpushable, so
+existing levels don't carry over unchanged, and new ones need to leave a
+runway behind tall piles the way a Sokoban level needs clear space behind a
+box. Counted as a push for move/solve bookkeeping, same as an ordinary push.
+
 ## Objective
 
 Initial version is a maze problem: reach the exit. Only reachability matters,
@@ -218,14 +253,14 @@ against a pile exactly one higher is a candidate for a future rule change,
 independent of this variant).
 
 `pool-equalize.html` is the equalise counterpart of `pool.html`: same game and
-test tools, but `src/levels-equalize.js` (the approved levels, hand-curated,
-holds a 3x3 tutorial so far) followed by `src/pool-equalize.js` (the current
+test tools, but `src/levels/levels-equalize.js` (the approved levels, hand-curated,
+holds a 3x3 tutorial so far) followed by `src/levels-test/pool-equalize.js` (the current
 disposable batch, dashed tiles, same "overwritten each round" convention as
 `pool.js`). Its settings and solved ticks use their own storage keys
 (`crated-in.pool-equalize.*`, via `game.js`'s `TEST.namespace`), so they don't
 collide with the exit-based pool's.
 
-The tutorial level (`src/levels-equalize.js`, Level 1): a plain 3x3, corners at
+The tutorial level (`src/levels/levels-equalize.js`, Level 1): a plain 3x3, corners at
 height 1, the four edge-middle cells at 0, the centre at 2. Standing on any
 edge-middle cell and pushing the centre spreads one copy onto each of the four
 edge-middle cells (their common neighbour), levelling every cell in the room to
@@ -257,7 +292,7 @@ its shortest solution is exactly that many moves.
 ```sh
 node experiments/reverse-equalize.js [--shapes all|name,name] [--attempts 300] [--seed 1]
      [--min-steps 3] [--max-steps 8] [--min-pushes 1] [--max-pushes 6]
-     [--layer-max 2] [--walk-bias 0.35] [--out src/pool-equalize.js] [--count 5]
+     [--layer-max 2] [--walk-bias 0.35] [--out src/levels-test/pool-equalize.js] [--count 5]
 ```
 
 Shapes come from `experiments/equalize-shapes.js`, a separate and much smaller
@@ -292,20 +327,28 @@ strategically placed wall, or a higher height cap).
 
 ## Code
 
+Level data lives in two directories, split by how settled it is: `src/levels/`
+holds the "production" lists (`levels.js`, `levels-equalize.js`) -- the real
+levels a page ships with -- and `src/levels-test/` holds everything still
+provisional (`candidates.js`, appendable, for review; `pool.js` and
+`pool-equalize.js`, ephemeral, overwritten each round -- see Pool UI above).
+Promoting a level is a manual copy from one directory to the other, same as
+before; nothing about that workflow changed, just where the files sit.
+
 - `src/engine.js`: DOM-free rules (`parseLevel`, `step`, `solve`, ...). Has a
   `module.exports` guard so Node can `require` it.
 - `tests/engine.test.js`: rules tests. Run `node --test tests/engine.test.js`.
 - `index.html`, `styles.css`, `src/game.js`: the play UI (SVG, top-down
   drawing, animation) with its home screen. `test.html` and `src/test-config.js`:
   the same game with test tools (see above). `pool.html` and `src/pool-config.js`:
-  the same game again, showing only the disposable batch in `src/pool.js` (see
-  above). Undo is a history of snapshots. `src/levels.js` holds the rooms
+  the same game again, showing only the disposable batch in `src/levels-test/pool.js` (see
+  above). Undo is a history of snapshots. `src/levels/levels.js` holds the rooms
   in level text format, each with its shortest known solution. `experiments/convert.js`
   converts old-style levels to the exit-cell form.
 - `pool-equalize.html` and `src/pool-equalize-config.js`: the pool page for the
-  equalise variant (see above); `src/levels-equalize.js` holds its approved
-  levels and `src/pool-equalize.js` its current disposable batch, same
-  approved/candidate relationship as `levels.js`/`candidates.js`.
+  equalise variant (see above); `src/levels/levels-equalize.js` holds its approved
+  levels and `src/levels-test/pool-equalize.js` its current disposable batch, same
+  approved/candidate relationship as `levels/levels.js`/`levels-test/candidates.js`.
   `experiments/reverse-equalize.js` generates the batch by reverse construction
   from the solved state, over shapes in `experiments/equalize-shapes.js`.
 - `experiments/generate.js`: hill-climbing level generator (see below).
@@ -350,7 +393,7 @@ running longer it drifts to 90 to 180 move solutions that are mostly repeated
 grinding, which probably isn't fun. Score doesn't yet measure what makes a
 puzzle good (few distinct solutions, tempting dead ends), so pick by eye.
 
-Level 1 in `src/levels.js` is a hand-made tutorial (a plain 3x3 room with a
+Level 1 in `src/levels/levels.js` is a hand-made tutorial (a plain 3x3 room with a
 central pillar). The early levels have been through an "elegance pruning" pass
 since: several were replaced with plain open shapes (a room with a pillar or
 two, a rectangle, a rectangle with a notch) found by the search below rather
@@ -370,7 +413,7 @@ solution alone can't: how many distinct shortest move-sequences there are
 how much it shuffles back and forth (`revisit`), and which open cells it never
 touches (`unused`: an irrelevant corner). Open cells walled off from the start
 are counted too (`disconnected`). `experiments/rate-levels.js` prints these for
-every level in `src/levels.js`.
+every level in `src/levels/levels.js`.
 
 `experiments/push-ways.js` fixes a real flaw in `ways`: it counts raw
 move-sequences, which is inflated by walking to the same push by a different
@@ -415,7 +458,7 @@ and (once a board is already promising) decoys, forced ends and the real
 node experiments/shape-levels.js [--shapes all|name,name] [--restarts 6] [--iterations 600]
      [--seed 1] [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 13]
      [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--minutes 0]
-     [--out src/candidates.js] [--count 5]
+     [--out src/levels-test/candidates.js] [--count 5]
 node experiments/shape-levels.js --merge run1.log run2.log ...
 ```
 
@@ -443,11 +486,11 @@ fewest repeated squares/decoys/plans, and spreads the picks across the solution
 lengths on offer.
 
 ```
-node experiments/pick-shapes.js [--per-shape 2] [--out src/candidates.js] label=log1,log2 label=log3 ...
+node experiments/pick-shapes.js [--per-shape 2] [--out src/levels-test/candidates.js] label=log1,log2 label=log3 ...
 ```
 
-Both tools' `--out` writes `src/candidates.js` (appendable; "Candidate N") by
-default, or `src/pool.js` ("Option N" instead, and the whole file replaced, not
+Both tools' `--out` writes `src/levels-test/candidates.js` (appendable; "Candidate N") by
+default, or `src/levels-test/pool.js` ("Option N" instead, and the whole file replaced, not
 appended to -- see Pool UI above) when the path's basename is `pool.js`.
 
 ## Exhaustive search
@@ -470,7 +513,7 @@ node experiments/exhaust-shape.js --shape diag4 [--max-height 5] [--part 0 --par
 node experiments/exhaust-zero.js --shape notch3x5 --min-zero 6 [--max-height 5] [--part 0 --parts 1] [--keep 40] [--min-moves 18]
 ```
 
-Neither writes `src/candidates.js` directly; their `BEST {json}` lines get
+Neither writes `src/levels-test/candidates.js` directly; their `BEST {json}` lines get
 merged and scored the same way as `shape-levels.js`'s (see the shape-search
 sessions in the repo's history for the exact recipe), since a board worth
 keeping still needs the decoy/forced-end/`pushWays` checks above.
@@ -485,14 +528,14 @@ length alone, rejects
 boards with enclosed cells or more than 35% unused cells, and keeps initial
 heights at 5 or below (pushes can build higher in play). `experiments/make-levels.js`
 builds on it: climbs, tidies with `tidy.js`, re-analyses, and keeps only boards
-that still fit the target window, writing the best few (as `src/candidates.js`
-or `src/pool.js`, same as `pick-shapes.js` above) spread across it.
+that still fit the target window, writing the best few (as `src/levels-test/candidates.js`
+or `src/levels-test/pool.js`, same as `pick-shapes.js` above) spread across it.
 
 ```
 node experiments/make-levels.js [--sizes 5x5,6x5,6x6] [--seeds 1-12] [--count 5]
      [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 11]
-     [--min-traps 3] [--max-ways 3] [--out src/candidates.js]
-node experiments/make-levels.js --merge run1.log run2.log ... [--count 5] [--out src/candidates.js]
+     [--min-traps 3] [--max-ways 3] [--out src/levels-test/candidates.js]
+node experiments/make-levels.js --merge run1.log run2.log ... [--count 5] [--out src/levels-test/candidates.js]
 ```
 
 Since this search can still grow corridors and decoys by construction (that's

@@ -2,7 +2,7 @@
 // pool-equalize.html and experiments/reverse-equalize.js). Ephemeral by design:
 // the whole file gets overwritten with a fresh POOL_EQUALIZE every time there's
 // a new batch to show. Once a choice is made, copy the entry into
-// src/levels-equalize.js by hand and forget this file until the next batch.
+// src/levels/levels-equalize.js by hand and forget this file until the next batch.
 const POOL_EQUALIZE = [
   {
     name: "Option 1",

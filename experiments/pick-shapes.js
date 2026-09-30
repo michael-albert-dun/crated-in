@@ -1,5 +1,5 @@
-// Picks candidate levels from shape-levels.js logs and writes src/candidates.js.
-//   node experiments/pick-shapes.js [--per-shape 2] [--out src/candidates.js] label=log1,log2 label=log3 ...
+// Picks candidate levels from shape-levels.js logs and writes src/levels-test/candidates.js.
+//   node experiments/pick-shapes.js [--per-shape 2] [--out src/levels-test/candidates.js] label=log1,log2 label=log3 ...
 // Each label=logs argument names a shape and the logs its attempts are in. Boards
 // are re-checked (decoys with tempting alcoves exempt, forced ends) and ranked by
 // repeated squares and decoys, then spread across the solution lengths.
@@ -63,7 +63,7 @@ for (const { label, files } of groups) {
   for (const c of new Set(chosen)) picked.push(c);
 }
 
-// src/pool.js (ephemeral, fully overwritten -- see that file's own comment) gets
+// src/levels-test/pool.js (ephemeral, fully overwritten -- see that file's own comment) gets
 // POOL and "Option N"; anywhere else gets the usual CANDIDATES and "Candidate N".
 const isPool = args.out && path.basename(args.out) === "pool.js";
 const namePrefix = isPool ? "Option" : "Candidate";
@@ -86,7 +86,7 @@ if (args.out && picked.length) {
     ? `// A throwaway batch of levels to look at and choose between, in level text
 // format. Ephemeral by design: the whole file gets overwritten with a fresh
 // POOL every time there's a new batch to show, rather than growing forever the
-// way src/candidates.js was starting to. Once a choice is made, whatever's here
+// way src/levels-test/candidates.js was starting to. Once a choice is made, whatever's here
 // can be discarded; nothing else in the game refers to it. See pool.html.
 const POOL = [
 `

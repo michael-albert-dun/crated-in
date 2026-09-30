@@ -242,12 +242,26 @@ function spread(level, h, at) {
   }
 }
 
+// Restricted spread for the "line push" variant (see step): the pile loses 1,
+// and only the two cells on the push's own axis gain it -- your own cell and
+// the square past the pile, same direction -- not every neighbour the way
+// spread() does. The caller is responsible for checking `beyond` is open
+// before calling this: with no room to spread into, the whole push fails
+// instead of degrading to a partial one (see step's opts.linePush).
+function spreadLine(h, at, from, beyond) {
+  h[at] -= 1;
+  h[from] += 1;
+  h[beyond] += 1;
+}
+
 // Applies one move. A level with an exit gap is won by stepping out through
 // it: standing on the target cell and moving in the exit direction (at any
 // height; the gap is on a wall or the room's edge, so nothing else uses that
 // move). Levels without a gap side (older test levels) are won on reaching the
 // target cell. Returns { state, result, ... } where result is one of
-//   "blocked"  nothing happened (wall, edge, or a drop in soft mode)
+//   "blocked"  nothing happened: wall/edge (no reason), a drop in soft mode
+//              (reason "drop"), or opts.linePush with no room behind the pile
+//              (reason "push")
 //   "died"     stepped off a drop of 2+ (hard mode only); state is unchanged
 //   "walked"   moved to the neighbouring cell
 //   "won"      stepped out through the gap (or, without a gap, onto the target);
@@ -271,6 +285,18 @@ function spread(level, h, at) {
 //                  the now-level neighbour in the same move (push-and-move, not
 //                  push-then-move). Otherwise (wall, edge, or nothing lower to
 //                  slide into) you climb onto it as before.
+// opts.linePush    variant, independent of slideClimb (that's about the gap=1
+//                  case; this is about gap>=2): a push only ever reaches your
+//                  own cell and the cell just past the pile (spreadLine, not
+//                  spread) -- a consistent, always-two-cell footprint instead
+//                  of one that depends on how many neighbours the pile
+//                  happens to have. And critically: if there's no cell past
+//                  the pile to spread into (a wall, a pillar, the room's
+//                  edge), the push doesn't happen at all -- "blocked", reason
+//                  "push" -- the same way Sokoban won't push a box into a
+//                  wall. That's a real, visible "you can't do that" signal,
+//                  unlike the default push, which always succeeds as long as
+//                  the pile itself is a valid cell.
 function step(level, state, d, opts = {}) {
   const from = state.pos;
   if (from === level.target && d === level.exitDir) return { state, result: "won" };
@@ -278,7 +304,7 @@ function step(level, state, d, opts = {}) {
   const to = level.nbrs[from][d];
   if (to < 0) return { state, result: "blocked" };
   const gap = state.h[to] - state.h[from];
-  if (gap <= -2) return { state, result: opts.soft ? "blocked" : "died" };
+  if (gap <= -2) return opts.soft ? { state, result: "blocked", reason: "drop" } : { state, result: "died" };
   if (gap === 1 && opts.slideClimb) {
     const beyond = level.nbrs[to][d];
     if (beyond >= 0 && state.h[beyond] < state.h[to]) {
@@ -298,6 +324,18 @@ function step(level, state, d, opts = {}) {
       state: { h: state.h, pos: to },
       result: to === level.target && level.exitDir < 0 ? "won" : "walked",
     };
+  }
+  if (opts.linePush) {
+    const beyond = level.nbrs[to][d];
+    if (beyond < 0) return { state, result: "blocked", reason: "push" };
+    const h = Int16Array.from(state.h);
+    let spreads = 0;
+    do {
+      spreadLine(h, to, from, beyond);
+      spreads += 1;
+    } while (opts.justEnough && h[to] - h[from] >= 2);
+    const reflooded = reflood(level, h);
+    return { state: { h, pos: from }, result: "pushed", spreads, reflooded };
   }
   const h = Int16Array.from(state.h);
   let spreads = 0;
@@ -328,7 +366,8 @@ function stateKey(state) {
 // variant). step() itself never reports this: it stays exit-cell-only, so
 // play (game.js) can run the ordinary push animation and check flatness
 // afterward instead of having a push silently double as a "won" result.
-// opts.slideClimb is passed straight through to step() (see there).
+// opts.slideClimb and opts.linePush are passed straight through to step()
+// (see there).
 // "Hard" and "soft" mode solve identically (a fatal drop is never useful), so
 // the solver ignores opts.soft.
 function solve(level, opts = {}) {
@@ -344,7 +383,7 @@ function solve(level, opts = {}) {
   for (let head = 0; head < states.length; head += 1) {
     const state = states[head];
     for (let d = 0; d < DIRS.length; d += 1) {
-      const out = step(level, state, d, { justEnough: opts.justEnough, slideClimb: opts.slideClimb });
+      const out = step(level, state, d, { justEnough: opts.justEnough, slideClimb: opts.slideClimb, linePush: opts.linePush });
       if (out.result === "blocked" || out.result === "died") continue;
       const changesHeight = out.result === "pushed" || out.result === "slid";
       if (changesHeight && opts.noPushes) continue;

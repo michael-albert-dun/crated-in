@@ -2,7 +2,7 @@
 // win) so a level can be judged on more than the length of its shortest solution.
 //
 //   const { analyse } = require("./analyse.js");
-//   analyse(level, { justEnough, maxHeight, maxStates })
+//   analyse(level, { justEnough, slideClimb, linePush, maxHeight, maxStates })
 //
 // Piles above maxHeight are treated as out of bounds. Its default here is 6,
 // lower than solve()'s default of 9, on the assumption that "no sensible
@@ -40,7 +40,7 @@ function keyOf(state) {
 }
 
 function analyse(level, opts = {}) {
-  const { maxHeight = 6, maxStates = 500000, justEnough = false } = opts;
+  const { maxHeight = 6, maxStates = 500000, justEnough = false, slideClimb = false, linePush = false } = opts;
   const first = opts.from || createState(level);
   const openCells = level.wall.reduce((count, w) => count + (w ? 0 : 1), 0);
   const reach = new Set([level.start]);
@@ -62,7 +62,7 @@ function analyse(level, opts = {}) {
     succ[head] = [];
     winMove[head] = -1;
     for (let d = 0; d < DIRS.length; d += 1) {
-      const out = step(level, state, d, { justEnough });
+      const out = step(level, state, d, { justEnough, slideClimb, linePush });
       if (out.result === "blocked" || out.result === "died") continue;
       if (out.result === "won") {
         winMove[head] = d;

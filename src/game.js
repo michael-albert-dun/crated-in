@@ -52,7 +52,7 @@ const state = {
   // Each entry is a full snapshot, so undo is just popping.
   history: [],
   current: null,
-  settings: { gentle: false, justEnough: false, hints: !!TEST, slideClimb: false },
+  settings: { gentle: false, justEnough: false, hints: !!TEST, slideClimb: false, linePush: false },
   solved: new Set(),
   cheat: false,
 };
@@ -94,6 +94,7 @@ const elements = {
   hints: document.querySelector("#opt-hints"),
   enough: document.querySelector("#opt-enough"),
   slideClimb: document.querySelector("#opt-slide"),
+  linePush: document.querySelector("#opt-linepush"),
   progress: document.querySelector("#progress"),
   gentle: document.querySelector("#opt-gentle"),
 };
@@ -579,13 +580,24 @@ function render() {
       const X0 = cellX(n % level.width);
       const Y0 = cellY(Math.floor(n / level.width));
       if (state.settings.hints) {
-        // What a move there would do: walk, push (2 or more higher) or fatal drop.
-        const gap = current.game.h[n] - current.game.h[pos];
-        const kind = gap >= 2 ? "push" : gap <= -2 ? "drop" : "walk";
-        svgEl("rect", {
-          x: X0 + 3, y: Y0 + 3, width: CELL - 6, height: CELL - 6, rx: 6, fill: HINT_COLORS[kind], "fill-opacity": 0.28,
-          stroke: HINT_COLORS[kind], "stroke-width": 4, "pointer-events": "none",
-        }, svg);
+        // What a move there would actually do, per step() itself (not just the
+        // raw gap): matters now that linePush can turn a would-be push into a
+        // silent "blocked" instead -- a stale gap-only heuristic would still
+        // paint that direction as pushable.
+        const out = step(level, current.game, d, {
+          soft: true, justEnough: state.settings.justEnough,
+          slideClimb: state.settings.slideClimb, linePush: state.settings.linePush,
+        });
+        const kind = out.result === "pushed" || out.result === "slid" ? "push"
+          : out.result === "blocked" && out.reason === "drop" ? "drop"
+          : out.result === "walked" || out.result === "won" ? "walk"
+          : null;
+        if (kind) {
+          svgEl("rect", {
+            x: X0 + 3, y: Y0 + 3, width: CELL - 6, height: CELL - 6, rx: 6, fill: HINT_COLORS[kind], "fill-opacity": 0.28,
+            stroke: HINT_COLORS[kind], "stroke-width": 4, "pointer-events": "none",
+          }, svg);
+        }
       }
       addTapPad(svg, [X0, Y0, X0 + CELL, Y0 + CELL], view.h[n], d);
     });
@@ -759,7 +771,7 @@ function readyFacing() {
   const order = [0, 1, 2, 3];
   for (const wanted of ["walked", "slid", "pushed"]) {
     for (const d of order) {
-      if (step(level, state.current.game, d, { soft: true, slideClimb: state.settings.slideClimb }).result === wanted) return d;
+      if (step(level, state.current.game, d, { soft: true, slideClimb: state.settings.slideClimb, linePush: state.settings.linePush }).result === wanted) return d;
     }
   }
   return 1;
@@ -808,12 +820,16 @@ function nudgePhase(d) {
 // splits into up to four copies that drift down onto the neighbouring stacks;
 // the copy for your own square slides in underneath you, so you come down a
 // level higher. If every stack now has a crate under it the bottom layer sinks
-// away. With the "push until you can climb" option this repeats.
+// away. With the "push until you can climb" option this repeats. With
+// linePush, only two copies ever fly (your own square and the one past the
+// pile), so the recipient list is narrowed to match what step() actually did.
 function pushPhases(prevGame, out, d) {
   const { level } = state;
   const pos = prevGame.pos;
   const pile = level.nbrs[pos][d];
-  const nbrs = level.nbrs[pile].filter((n) => n >= 0);
+  const nbrs = state.settings.linePush
+    ? [pos, level.nbrs[pile][d]].filter((n) => n >= 0)
+    : level.nbrs[pile].filter((n) => n >= 0);
   const pc = cellCentre(pile);
   const pl = view.player;
   const hs = Float64Array.from(prevGame.h);
@@ -969,15 +985,20 @@ function move(d) {
   if (cur.status !== "playing") return;
   const { level } = state;
   const flatWin = isFlatWinLevel(level);
-  const opts = { soft: state.settings.gentle, justEnough: state.settings.justEnough, slideClimb: state.settings.slideClimb };
+  const opts = {
+    soft: state.settings.gentle, justEnough: state.settings.justEnough,
+    slideClimb: state.settings.slideClimb, linePush: state.settings.linePush,
+  };
   const from = cur.game.pos;
   const to = level.nbrs[from][d];
   view.player.facing = d;
   const out = step(level, cur.game, d, opts);
 
   if (out.result === "blocked") {
-    // Walls and edges block silently; a blocked drop (gentle mode) says why.
-    if (to >= 0) cur.message = "That's too far to drop.";
+    // Walls and edges block silently; a blocked drop (gentle mode) or a
+    // linePush with no room behind the pile says why.
+    if (out.reason === "drop") cur.message = "That's too far to drop.";
+    else if (out.reason === "push") cur.message = "No room to push that into.";
     runPhases([nudgePhase(d)]);
     updateHud();
     return;
@@ -1021,7 +1042,11 @@ function advice() {
   const cur = state.current;
   if (!state.cheat || cur.status !== "playing") return null;
   const flatWin = isFlatWinLevel(state.level);
-  const out = solve(state.level, { from: cur.game, justEnough: state.settings.justEnough, slideClimb: state.settings.slideClimb, maxHeight: 12, flatWin });
+  const out = solve(state.level, {
+    from: cur.game, justEnough: state.settings.justEnough,
+    slideClimb: state.settings.slideClimb, linePush: state.settings.linePush,
+    maxHeight: 12, flatWin,
+  });
   return out;
 }
 
@@ -1140,12 +1165,24 @@ function init() {
       saveStorage();
       updateHud();
     });
-    elements.slideClimb.checked = state.settings.slideClimb;
-    elements.slideClimb.addEventListener("change", () => {
-      state.settings.slideClimb = elements.slideClimb.checked;
-      saveStorage();
-      updateHud();
-    });
+    // Not present on pool-equalize.html: these two have only been built and
+    // tried against the escape-room game so far (see README).
+    if (elements.slideClimb) {
+      elements.slideClimb.checked = state.settings.slideClimb;
+      elements.slideClimb.addEventListener("change", () => {
+        state.settings.slideClimb = elements.slideClimb.checked;
+        saveStorage();
+        updateHud();
+      });
+    }
+    if (elements.linePush) {
+      elements.linePush.checked = state.settings.linePush;
+      elements.linePush.addEventListener("change", () => {
+        state.settings.linePush = elements.linePush.checked;
+        saveStorage();
+        updateHud();
+      });
+    }
   }
 
   elements.menuButton.addEventListener("click", () => showMenu("push"));

@@ -6,7 +6,7 @@
 //
 //   node experiments/shape-levels.js [--shapes all|name,name] [--restarts 6] [--iterations 600]
 //        [--seed 1] [--min-moves 24] [--max-moves 44] [--min-pushes 6] [--max-pushes 13]
-//        [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--max-states 60000] [--minutes 0] [--out src/candidates.js] [--count 5]
+//        [--min-traps 3] [--max-ways 3] [--max-decoys 0] [--max-unused 0] [--max-states 60000] [--minutes 0] [--out src/levels-test/candidates.js] [--count 5]
 //   node experiments/shape-levels.js --merge run1.log run2.log ...   (as make-levels.js)
 //
 // A shape is rows of cells: "." open, "#" wall, "E" the exit cell (a column of

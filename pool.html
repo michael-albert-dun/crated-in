@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Crated In (pool)</title>
     <link rel="stylesheet" href="styles.css?v=20260927e" />
-    <script defer src="src/engine.js?v=20260930b"></script>
-    <script defer src="src/pool.js?v=1"></script>
+    <script defer src="src/engine.js?v=20260930d"></script>
+    <script defer src="src/levels-test/pool.js?v=1"></script>
     <script defer src="src/pool-config.js?v=1"></script>
-    <script defer src="src/game.js?v=20260930c"></script>
+    <script defer src="src/game.js?v=20260930e"></script>
   </head>
   <body>
     <main>
       <!-- A disposable batch of levels to compare, nothing else: same game as
-           index.html/test.html, but the whole grid is src/pool.js, overwritten
+           index.html/test.html, but the whole grid is src/levels-test/pool.js, overwritten
            each time there's a new set to look at (see the file's own comment). -->
       <section id="menu-screen">
         <header>
@@ -31,6 +31,7 @@
           <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
           <label><input type="checkbox" id="opt-enough" /> Just-enough push (one bump spreads until you can walk)</label>
           <label><input type="checkbox" id="opt-slide" /> Slide-or-climb (a neighbour 1 higher slides forward if there's room, otherwise you climb it)</label>
+          <label><input type="checkbox" id="opt-linepush" /> Line push (a push only ever reaches you and the square past the pile, and fails outright with no room there)</label>
         </div>
 
         <h2>Levels <span id="progress"></span></h2>
