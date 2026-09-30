@@ -93,9 +93,10 @@ are appended after the real ones (dashed tiles in the grid, "Candidate N" in the
 level menu), and the play screen gains a level dropdown, a level info line (size,
 pushes and the finder's measures) and a Cheat button (`c` does the same). The
 test options are move hints, which outline each neighbouring square green for a
-walk, amber for a push and red for a fatal drop, plus gentle mode and the
-just-enough push variant. Its settings and solved ticks are stored separately
-from the main page (`crated-in.test.*` keys).
+walk, amber for a push and red for a fatal drop, plus gentle mode, the
+just-enough push variant, and slide-or-climb (see Mechanics below). Its
+settings and solved ticks are stored separately from the main page
+(`crated-in.test.*` keys).
 
 `c` toggles cheat mode: below the board it says whether the position can still
 be won, the next move of a shortest solution and how many moves remain, or "This
@@ -224,6 +225,21 @@ depends on the gap (neighbour height minus your height):
   reaches your level.
 
 Mistakes can make a board unwinnable, which is intended. `z` should undo.
+
+### Variant to try: slide-or-climb
+
+Normally a neighbour exactly 1 higher is always climbed (an ordinary walk).
+The `slideClimb` option (`step(..., { slideClimb: true })`; the "Slide-or-climb"
+checkbox on `test.html`/`pool.html`, off by default so the original puzzles are
+unaffected) changes that specific case: if the square past the neighbour, in
+the same direction, is strictly lower, the neighbour slides forward into it
+instead (a real moved unit -- it loses 1, that square gains 1, unlike a push's
+non-conserving copies onto every side) and you step onto the now-level
+neighbour in the same move (push-and-move, unlike an ordinary push, which
+never moves you). Otherwise you climb it exactly as before. Reflooring can
+still trigger off a slide, same as a push. Counted as a push for move/solve
+bookkeeping. `solve()`'s `flatWin` option recognises a slide that flattens the
+board too, for whenever this gets tried against the equalise variant.
 
 ### Variant to try: "just enough" spreading
 

@@ -319,4 +319,71 @@ const CANDIDATES = [
       #  2  0  4  0
       #  #  2  5  2`,
   },
+  // The three below are on Level 9's exact shape (same walls, start and exit),
+  // with heights hand-picked (from a random search over that one shape) so
+  // that the level is provably unsolvable by climbing alone -- turn on
+  // "Slide-or-climb" in Test options, or nothing here can be won. Each
+  // solution's essential slide leaves the far cell exactly 1 higher than it
+  // would be after a plain climb, turning what would otherwise be a fatal
+  // 2-drop a move or two later into a safe step.
+  {
+    name: "Slide demo 1 (needs Slide-or-climb)",
+    info: "3x5, 1 push (a slide), 6 moves -- unsolvable by climbing alone",
+    solution: "URRRDR",
+    text: `
+      #  3  0  0  #
+      1  2  0  1  0
+      0S  1  #  2  E`,
+  },
+  {
+    name: "Slide demo 2 (needs Slide-or-climb)",
+    info: "3x5, 2 pushes (1 ordinary, 1 slide), 7 moves -- unsolvable by climbing alone",
+    solution: "UURRRDR",
+    text: `
+      #  0  3  1  #
+      3  1  3  0  0
+      0S  3  #  0  E`,
+  },
+  {
+    name: "Slide demo 3 (needs Slide-or-climb)",
+    info: "3x5, 3 pushes (1 ordinary, 2 slides), 9 moves -- unsolvable by climbing alone",
+    solution: "URULRRRDR",
+    text: `
+      #  3  0  2  #
+      4  4  1  3  3
+      2S  4  #  2  E`,
+  },
+  // The two below are on a hand-drawn diagonal-corridor shape (a 5x5 room,
+  // walls carving a band from lower-left to upper-right), with only the seven
+  // "middle" cells (Manhattan distance > 2 from both S and E) given positive
+  // height -- found by an exhaustive sweep (heights 1-4 on those seven cells,
+  // 16384 boards) over that one shape, checking solve() with and without
+  // slideClimb. Of that sweep: 2401 boards were climb-provably-impossible but
+  // slide-solvable (this shape is far richer than Level 9's for that); 744
+  // were solvable both ways with sliding dramatically shorter. Both entries
+  // below were re-verified at a much larger search cap (400000 states) to
+  // rule out the "divergent, not actually proven" trap found earlier in the
+  // equalise variant's sparse-start search.
+  {
+    name: "Slide demo 4 (needs Slide-or-climb)",
+    info: "5x5, 21 pushes, 51 moves -- unsolvable by climbing alone (proven, only 247 reachable states)",
+    solution: "URURUUDRULUUURURLDDRUULRDRULDDDLLURURDDDLLURURDLRRU",
+    text: `
+      #  #  #  0  E
+      #  4  1  0  0
+      #  3  4  1  #
+      0  0  3  4  #
+      0S  0  #  #  #`,
+  },
+  {
+    name: "Slide demo 5 (try with and without Slide-or-climb)",
+    info: "5x5, solvable either way: climbing takes 24 moves/8 pushes, sliding takes 9 moves/2 pushes",
+    solution: "URRRURUUR",
+    text: `
+      #  #  #  0  E
+      #  4  2  0  0
+      #  4  2  1  #
+      0  0  3  3  #
+      0S  0  #  #  #`,
+  },
 ];

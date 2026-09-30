@@ -252,13 +252,25 @@ function spread(level, h, at) {
 //   "walked"   moved to the neighbouring cell
 //   "won"      stepped out through the gap (or, without a gap, onto the target);
 //              stepping out leaves the state unchanged
+//   "slid"     (opts.slideClimb only) the neighbour was exactly 1 higher and
+//              could slide (see below): it does, and you step onto it.
 //   "pushed"   the neighbour was 2+ higher, so it spread; the player stays put
 //              (push-then-move: you walk up on a later move once the gap is 1).
-// Pushed results also carry `spreads` and `reflooded` (layers removed).
+// Pushed and slid results also carry `reflooded` (layers removed); pushed also
+// carries `spreads`.
 //
 // opts.soft        a fatal drop is just blocked instead of killing you.
 // opts.justEnough  variant: one push repeats the spread until the gap is at
 //                  most 1, rather than spreading once per push.
+// opts.slideClimb  variant, wired separately so the original puzzles are
+//                  unaffected when it's off: a neighbour exactly 1 higher no
+//                  longer always means climbing onto it. If the square past
+//                  it (same direction) is strictly lower, the neighbour slides
+//                  forward instead -- it loses 1, that square gains 1 (a real
+//                  moved unit, not a copy, unlike spread) -- and you step onto
+//                  the now-level neighbour in the same move (push-and-move, not
+//                  push-then-move). Otherwise (wall, edge, or nothing lower to
+//                  slide into) you climb onto it as before.
 function step(level, state, d, opts = {}) {
   const from = state.pos;
   if (from === level.target && d === level.exitDir) return { state, result: "won" };
@@ -267,6 +279,20 @@ function step(level, state, d, opts = {}) {
   if (to < 0) return { state, result: "blocked" };
   const gap = state.h[to] - state.h[from];
   if (gap <= -2) return { state, result: opts.soft ? "blocked" : "died" };
+  if (gap === 1 && opts.slideClimb) {
+    const beyond = level.nbrs[to][d];
+    if (beyond >= 0 && state.h[beyond] < state.h[to]) {
+      const h = Int16Array.from(state.h);
+      h[to] -= 1;
+      h[beyond] += 1;
+      const reflooded = reflood(level, h);
+      return {
+        state: { h, pos: to },
+        result: to === level.target && level.exitDir < 0 ? "won" : "slid",
+        reflooded,
+      };
+    }
+  }
   if (gap <= 1) {
     return {
       state: { h: state.h, pos: to },
@@ -297,11 +323,12 @@ function stateKey(state) {
 // ask whether a half-played board can still be won.
 // opts.noPushes restricts the search to walking, which answers "could you just
 // walk there?" without any spreading.
-// opts.flatWin also treats a push that leaves the whole board flat (isFlat) as
-// a win, for levels with no target and no exit cell (the equalise variant).
-// step() itself never reports this: it stays exit-cell-only, so play (game.js)
-// can run the ordinary push animation and check flatness afterward instead of
-// having a push silently double as a "won" result.
+// opts.flatWin also treats a push (or slide) that leaves the whole board flat
+// (isFlat) as a win, for levels with no target and no exit cell (the equalise
+// variant). step() itself never reports this: it stays exit-cell-only, so
+// play (game.js) can run the ordinary push animation and check flatness
+// afterward instead of having a push silently double as a "won" result.
+// opts.slideClimb is passed straight through to step() (see there).
 // "Hard" and "soft" mode solve identically (a fatal drop is never useful), so
 // the solver ignores opts.soft.
 function solve(level, opts = {}) {
@@ -317,10 +344,11 @@ function solve(level, opts = {}) {
   for (let head = 0; head < states.length; head += 1) {
     const state = states[head];
     for (let d = 0; d < DIRS.length; d += 1) {
-      const out = step(level, state, d, { justEnough: opts.justEnough });
+      const out = step(level, state, d, { justEnough: opts.justEnough, slideClimb: opts.slideClimb });
       if (out.result === "blocked" || out.result === "died") continue;
-      if (out.result === "pushed" && opts.noPushes) continue;
-      const won = out.result === "won" || (opts.flatWin && out.result === "pushed" && isFlat(level, out.state.h));
+      const changesHeight = out.result === "pushed" || out.result === "slid";
+      if (changesHeight && opts.noPushes) continue;
+      const won = out.result === "won" || (opts.flatWin && changesHeight && isFlat(level, out.state.h));
       if (won) {
         let moves = DIRS[d].name;
         let pushes = 0;
@@ -328,10 +356,10 @@ function solve(level, opts = {}) {
           moves = DIRS[moveInto[i]].name + moves;
           if (pushInto[i]) pushes += 1;
         }
-        if (out.result === "pushed") pushes += 1;
+        if (changesHeight) pushes += 1;
         return { status: "solved", moves, pushes, states: states.length };
       }
-      if (out.result === "pushed" && Math.max(...out.state.h) > maxHeight) {
+      if (changesHeight && Math.max(...out.state.h) > maxHeight) {
         capped = true;
         continue;
       }
@@ -345,7 +373,7 @@ function solve(level, opts = {}) {
       states.push(out.state);
       parent.push(head);
       moveInto.push(d);
-      pushInto.push(out.result === "pushed");
+      pushInto.push(changesHeight);
     }
   }
   return { status: capped ? "unknown" : "unsolvable", states: states.length };

@@ -219,6 +219,58 @@ test("isFlat: true only once every non-wall cell is at height 0; walls never cou
   assert.ok(!isFlat(level, Int32Array.from([0, 9, 1, 0])));
 });
 
+test("slideClimb off: a neighbour exactly 1 higher is always climbed, never slid", () => {
+  const level = parseLevel("0S 1 0 0T");
+  const out = step(level, createState(level), R); // no opts at all
+  assert.strictEqual(out.result, "walked");
+  assert.deepStrictEqual(heights(out.state), [0, 1, 0, 0]);
+});
+
+test("slideClimb on: a neighbour exactly 1 higher slides forward if the square past it is strictly lower", () => {
+  const level = parseLevel("0S 1 0 0T");
+  const out = step(level, createState(level), R, { slideClimb: true });
+  assert.strictEqual(out.result, "slid");
+  assert.strictEqual(out.state.pos, 1); // you step onto the now-level square, not stay put
+  assert.deepStrictEqual(heights(out.state), [0, 0, 1, 0]); // the block moved, not copied
+});
+
+test("slideClimb on: falls back to climbing when there's nothing lower to slide into", () => {
+  const equalBeyond = parseLevel("0S 1 1 0T"); // beyond is the same height, not strictly lower
+  assert.strictEqual(step(equalBeyond, createState(equalBeyond), R, { slideClimb: true }).result, "walked");
+
+  const edge = parseLevel("0S 1"); // beyond is off the board
+  assert.strictEqual(step(edge, createState(edge), R, { slideClimb: true }).result, "walked");
+
+  const wallBeyond = parseLevel("0S 1 #\n0 0 0"); // beyond is a wall
+  assert.strictEqual(step(wallBeyond, createState(wallBeyond), R, { slideClimb: true }).result, "walked");
+});
+
+test("a slide reflooding trigger: sliding can itself bring every cell to >= 1", () => {
+  const level = parseLevel("1S 2 0");
+  const out = step(level, createState(level), R, { slideClimb: true });
+  assert.strictEqual(out.result, "slid");
+  assert.strictEqual(out.reflooded, 1);
+  assert.deepStrictEqual(heights(out.state), [0, 0, 0]);
+});
+
+test("sliding onto the target wins, same as climbing onto it", () => {
+  const level = parseLevel("0S 1T 0");
+  const out = step(level, createState(level), R, { slideClimb: true });
+  assert.strictEqual(out.result, "won");
+});
+
+test("solve() counts a slide as a push, and flatWin recognises a slide that flattens the board", () => {
+  // No target or exit cell at all: without slideClimb, gap 1 is just a climb
+  // and this board never goes flat; with it, the single slide from the
+  // reflood test above is itself the win.
+  const level = parseLevel("1S 2 0");
+  assert.strictEqual(solve(level, { flatWin: true }).status, "unsolvable");
+  const slid = solve(level, { slideClimb: true, flatWin: true });
+  assert.strictEqual(slid.status, "solved");
+  assert.strictEqual(slid.moves, "R");
+  assert.strictEqual(slid.pushes, 1);
+});
+
 test("solve's flatWin option treats a push that flattens the whole board as a win", () => {
   // The 3x3 equalise tutorial: a push from the top-middle cell against the
   // centre spreads onto all four arms, levelling every cell to 1, which then

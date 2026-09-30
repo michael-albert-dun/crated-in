@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Crated In (pool)</title>
     <link rel="stylesheet" href="styles.css?v=20260927e" />
-    <script defer src="src/engine.js?v=20260930a"></script>
+    <script defer src="src/engine.js?v=20260930b"></script>
     <script defer src="src/pool.js?v=1"></script>
     <script defer src="src/pool-config.js?v=1"></script>
-    <script defer src="src/game.js?v=20260930a"></script>
+    <script defer src="src/game.js?v=20260930c"></script>
   </head>
   <body>
     <main>
@@ -30,6 +30,7 @@
           <label><input type="checkbox" id="opt-hints" /> Show move hints (<span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
           <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
           <label><input type="checkbox" id="opt-enough" /> Just-enough push (one bump spreads until you can walk)</label>
+          <label><input type="checkbox" id="opt-slide" /> Slide-or-climb (a neighbour 1 higher slides forward if there's room, otherwise you climb it)</label>
         </div>
 
         <h2>Levels <span id="progress"></span></h2>

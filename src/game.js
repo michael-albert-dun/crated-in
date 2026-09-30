@@ -52,7 +52,7 @@ const state = {
   // Each entry is a full snapshot, so undo is just popping.
   history: [],
   current: null,
-  settings: { gentle: false, justEnough: false, hints: !!TEST },
+  settings: { gentle: false, justEnough: false, hints: !!TEST, slideClimb: false },
   solved: new Set(),
   cheat: false,
 };
@@ -93,6 +93,7 @@ const elements = {
   cheat: document.querySelector("#cheat"),
   hints: document.querySelector("#opt-hints"),
   enough: document.querySelector("#opt-enough"),
+  slideClimb: document.querySelector("#opt-slide"),
   progress: document.querySelector("#progress"),
   gentle: document.querySelector("#opt-gentle"),
 };
@@ -668,6 +669,41 @@ function walkPhase(from, to) {
   };
 }
 
+// slideClimb only: a neighbour exactly 1 higher slides forward instead of
+// being climbed (see engine.js's step). Simpler than pushPhases' jump/wand
+// bump -- no separate "push" gesture, since you walk into the move the same
+// way as an ordinary climb, it's just that the block and the square past it
+// change height under you as you go. Reflooring beyond these two cells (if
+// this move happens to trigger it) isn't animated here either, same as
+// pushPhases: it just settles at the next syncView(), see that function's
+// own comment.
+function slidePhases(prevGame, out, d) {
+  const { level } = state;
+  const from = prevGame.pos;
+  const to = level.nbrs[from][d];
+  const beyond = level.nbrs[to][d];
+  const a = cellCentre(from);
+  const b = cellCentre(to);
+  const z0 = view.h[from];
+  const beforeTo = prevGame.h[to];
+  const afterTo = out.state.h[to];
+  const beforeBeyond = prevGame.h[beyond];
+  const afterBeyond = out.state.h[beyond];
+  const pl = view.player;
+  return {
+    ms: 260,
+    update(t) {
+      const e = easeInOut(t);
+      pl.x = lerp(a.x, b.x, e);
+      pl.y = lerp(a.y, b.y, e);
+      view.h[to] = lerp(beforeTo, afterTo, e);
+      view.h[beyond] = lerp(beforeBeyond, afterBeyond, e);
+      pl.base = lerp(z0, afterTo, e);
+      pl.z = pl.base + 0.35 * Math.sin(Math.PI * t);
+    },
+  };
+}
+
 // Stepping out: from the cell next to the exit onto its square of light, at the
 // height you are standing at, then floating up and away.
 function exitPhase(from, d) {
@@ -721,9 +757,9 @@ function entryPhase() {
 function readyFacing() {
   const { level } = state;
   const order = [0, 1, 2, 3];
-  for (const wanted of ["walked", "pushed"]) {
+  for (const wanted of ["walked", "slid", "pushed"]) {
     for (const d of order) {
-      if (step(level, state.current.game, d, { soft: true }).result === wanted) return d;
+      if (step(level, state.current.game, d, { soft: true, slideClimb: state.settings.slideClimb }).result === wanted) return d;
     }
   }
   return 1;
@@ -933,7 +969,7 @@ function move(d) {
   if (cur.status !== "playing") return;
   const { level } = state;
   const flatWin = isFlatWinLevel(level);
-  const opts = { soft: state.settings.gentle, justEnough: state.settings.justEnough };
+  const opts = { soft: state.settings.gentle, justEnough: state.settings.justEnough, slideClimb: state.settings.slideClimb };
   const from = cur.game.pos;
   const to = level.nbrs[from][d];
   view.player.facing = d;
@@ -953,9 +989,9 @@ function move(d) {
     status: "playing", message: "",
   };
   let phases;
-  if (out.result === "pushed") {
+  if (out.result === "pushed" || out.result === "slid") {
     next.pushes += 1;
-    phases = pushPhases(cur.game, out, d);
+    phases = out.result === "slid" ? [slidePhases(cur.game, out, d)] : pushPhases(cur.game, out, d);
     if (flatWin && isFlat(level, out.state.h)) {
       next.status = "won";
       next.message = state.levelIndex + 1 < LEVELS.length ? "" : "That was the last level.";
@@ -985,12 +1021,13 @@ function advice() {
   const cur = state.current;
   if (!state.cheat || cur.status !== "playing") return null;
   const flatWin = isFlatWinLevel(state.level);
-  const out = solve(state.level, { from: cur.game, justEnough: state.settings.justEnough, maxHeight: 12, flatWin });
+  const out = solve(state.level, { from: cur.game, justEnough: state.settings.justEnough, slideClimb: state.settings.slideClimb, maxHeight: 12, flatWin });
   return out;
 }
 
 function updateHud() {
   const cur = state.current;
+  if (!cur) return; // no level loaded yet (e.g. a settings checkbox toggled from the home screen)
   const settled = !anim;
   const total = LEVELS.length;
   const level = LEVELS[state.levelIndex];
@@ -1100,6 +1137,12 @@ function init() {
     });
     elements.enough.addEventListener("change", () => {
       state.settings.justEnough = elements.enough.checked;
+      saveStorage();
+      updateHud();
+    });
+    elements.slideClimb.checked = state.settings.slideClimb;
+    elements.slideClimb.addEventListener("change", () => {
+      state.settings.slideClimb = elements.slideClimb.checked;
       saveStorage();
       updateHud();
     });
