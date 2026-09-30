@@ -380,5 +380,5 @@ function solve(level, opts = {}) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, gateIndex, formatLevel, createState, reflood, isFlat, step, solve };
+  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, formatLevel, createState, reflood, isFlat, step, solve };
 }
