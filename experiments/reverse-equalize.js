@@ -242,4 +242,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { attempt, parseShape, finish, writeOut };
+module.exports = { attempt, parseShape, formatConstruction, finish, writeOut };
