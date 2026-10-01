@@ -4,14 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Crated In</title>
-    <link rel="stylesheet" href="styles.css?v=20260927e" />
-    <script defer src="src/engine.js?v=20260930d"></script>
+    <link rel="stylesheet" href="styles.css?v=20261001a" />
+    <script defer src="src/engine.js?v=20261001a"></script>
     <script defer src="src/levels/levels.js?v=20260929a"></script>
-    <script defer src="src/game.js?v=20260930e"></script>
+    <script defer src="src/levels/levels-linepush-intro.js?v=20261001b"></script>
+    <script defer src="src/levels/levels-linepush.js?v=20261001b"></script>
+    <script defer src="src/levels/levels-equalize.js?v=20261001a"></script>
+    <script defer src="src/worlds.js?v=20261001b"></script>
+    <script defer src="src/game.js?v=20261001c"></script>
   </head>
   <body>
     <main>
-      <!-- Home screen: the story, how to play, settings, then the level grid. -->
+      <!-- Home screen: the story, the basics, then one card per world (levels.js etc.
+           are grouped into worlds in src/worlds.js), then settings. -->
       <section id="menu-screen">
         <header>
           <h1>Crated In</h1>
@@ -29,37 +34,43 @@
           </p>
         </div>
 
-        <h2>How to play</h2>
         <ul class="howto">
           <li>
             <strong>Climb.</strong> You can clamber up or down one crate at a time. Dropping down two or more
-            is too far.
-          </li>
-          <li>
-            <strong>Point.</strong> Point the wand at a stack that's too tall to climb (by pushing against it).
-            The crate on top is destroyed, but a copy of it drifts down onto each neighbouring stack,
-            including yours, so you're lifted a level.
+            is too far. Pushing against a stack that's too tall to climb uses the wand.
           </li>
           <li>
             <strong>Move.</strong> Use arrow keys or WASD, or tap a neighbouring square. <kbd>z</kbd> undoes,
-            <kbd>r</kbd> restarts, <kbd>c</kbd> peeks at a solution and <kbd>m</kbd> comes back here.
+            <kbd>r</kbd> restarts, <kbd>c</kbd> peeks at a solution and <kbd>m</kbd> comes back to the levels.
           </li>
         </ul>
 
-        <h2>Settings</h2>
-        <div class="settings">
-          <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
-          <label><input type="checkbox" id="opt-hints" /> Show move hints (colour each neighbouring square: <span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
-        </div>
+        <h2>Worlds</h2>
+        <div id="world-list"></div>
 
-        <h2>Levels <span id="progress"></span></h2>
-        <div id="level-grid" role="list"></div>
+        <details class="panel">
+          <summary>Settings</summary>
+          <div class="settings">
+            <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
+            <label><input type="checkbox" id="opt-hints" /> Show move hints (colour each neighbouring square: <span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
+          </div>
+        </details>
+      </section>
+
+      <!-- World screen: how this world's push works, then its level sets. -->
+      <section id="world-screen" hidden>
+        <header>
+          <button type="button" id="worlds-button">&larr; Worlds</button>
+          <p id="world-title"></p>
+        </header>
+        <div id="world-rule" class="story"></div>
+        <div id="world-levels"></div>
       </section>
 
       <!-- Play screen: one room at a time. -->
       <section id="play-screen" hidden>
         <header>
-          <button type="button" id="menu-button">&larr; Menu</button>
+          <button type="button" id="menu-button">&larr; Levels</button>
           <p id="room-title"></p>
         </header>
 

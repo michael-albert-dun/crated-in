@@ -337,3 +337,23 @@ test("linePush changes what's solvable: a pile with a wall directly behind it ca
   assert.strictEqual(solve(level).status, "solved"); // plain push: only "behind you" is a real neighbour anyway, so it still works
   assert.strictEqual(solve(level, { linePush: true }).status, "unsolvable"); // linePush: blocked outright, and there's nowhere else to go
 });
+
+test("linePush on: a push onto the exit's column of light is allowed; the copy floats away and adds nothing", () => {
+  const level = parseLevel("0S 4 E");
+  const out = step(level, createState(level), R, { linePush: true });
+  assert.strictEqual(out.result, "pushed");
+  assert.strictEqual(out.floated, R);
+  assert.deepStrictEqual(Array.from(out.state.h), [0, 2, 0]); // you +1, the pile -1, then reflood strips the bottom layer
+  // Without that rule the same pile would be a wall behind it and blocked.
+  const wall = parseLevel("0S 4 #");
+  assert.strictEqual(step(wall, createState(wall), R, { linePush: true }).result, "blocked");
+});
+
+test("classic push next to the exit: heights as before, but `floated` says a copy went up the light", () => {
+  const level = parseLevel("0S 4 E");
+  const out = step(level, createState(level), R);
+  assert.strictEqual(out.floated, R);
+  assert.deepStrictEqual(Array.from(out.state.h), [0, 2, 0]); // you +1, the pile -1, then reflood strips the bottom layer
+  const plain = parseLevel("0S 4 0");
+  assert.strictEqual(step(plain, createState(plain), R).floated, -1);
+});

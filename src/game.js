@@ -46,7 +46,27 @@ const VOID_FILL = "#b4dcf6"; // the space around a free-standing pillar: peering
 const PILLAR = { body: "#4d525b", stroke: "#25272b", inset: "#0b0c0e", star: "#c9cdd4" };
 const STONE = { top: "#3f434b" }; // the plain grey of the boundary walls
 
+// The main page offers several worlds (src/worlds.js): each is its own level
+// set with its own rules, so the rule flags come from the world and a level can
+// never be played under the wrong ones. Pages without worlds.js (test.html and
+// the pool pages) have one implicit world holding all of LEVELS, with the rules
+// taken from their checkboxes instead.
+const WORLD_LIST = typeof WORLDS !== "undefined" ? WORLDS : null;
+if (WORLD_LIST) {
+  for (const world of WORLD_LIST) {
+    world.levels = [];
+    for (const group of world.groups) {
+      group.start = world.levels.length;
+      world.levels.push(...group.levels);
+    }
+  }
+}
+// Old addresses (?level=N) and old saved progress predate worlds: they mean classic.
+const LEGACY_WORLD = WORLD_LIST ? WORLD_LIST.find((w) => w.id === "classic") : null;
+const SINGLE_WORLD = { id: "", name: "Crated In", levels: LEVELS, groups: null, rules: null, legacyKeys: true };
+
 const state = {
+  world: WORLD_LIST ? WORLD_LIST[0] : SINGLE_WORLD,
   levelIndex: 0,
   level: null,
   // Each entry is a full snapshot, so undo is just popping.
@@ -88,6 +108,13 @@ const elements = {
   playScreen: document.querySelector("#play-screen"),
   menuButton: document.querySelector("#menu-button"),
   grid: document.querySelector("#level-grid"),
+  // Main page only (null on the test pages).
+  worldScreen: document.querySelector("#world-screen"),
+  worldList: document.querySelector("#world-list"),
+  worldTitle: document.querySelector("#world-title"),
+  worldRule: document.querySelector("#world-rule"),
+  worldLevels: document.querySelector("#world-levels"),
+  worldsButton: document.querySelector("#worlds-button"),
   // Test page only (null on the main page).
   select: document.querySelector("#room-select"),
   cheat: document.querySelector("#cheat"),
@@ -105,6 +132,8 @@ function loadStorage() {
   try {
     Object.assign(state.settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {});
     state.solved = new Set(JSON.parse(localStorage.getItem(PROGRESS_KEY)) || []);
+    // Before worlds, progress was a list of level numbers: all classic.
+    if (WORLD_LIST) state.solved = new Set([...state.solved].map((key) => (typeof key === "number" ? `${LEGACY_WORLD.id}:${key}` : key)));
   } catch (error) {
     // Storage is only a convenience; carry on with defaults.
   }
@@ -117,6 +146,18 @@ function saveStorage() {
   } catch (error) {
     // Ignore: the game works without storage.
   }
+}
+
+// Progress is stored per world as "world:index" (the test pages keep their
+// plain indices).
+const solvedKey = (world, i) => (world.legacyKeys ? i : `${world.id}:${i}`);
+const isSolved = (world, i) => state.solved.has(solvedKey(world, i));
+const solvedCount = (world) => world.levels.filter((_, i) => isSolved(world, i)).length;
+
+// The engine's rule flags: from the world, or from the checkboxes on the test pages.
+function ruleOpts() {
+  const source = state.world.rules || state.settings;
+  return { slideClimb: !!source.slideClimb, linePush: !!source.linePush };
 }
 
 // --------------------------------------------------------------- geometry
@@ -269,8 +310,40 @@ function drawPrism(g, X0, Y0, X1, Y1, zb, zt, style, options = {}) {
   return at;
 }
 
+// Height cue: a translucent black (low) or white (high) wash over a lid, with
+// no shadows involved, so a glance at the board reads as a relief map. Neutral
+// at HEIGHT_SHADE_MID layers; the floor is the darkest and the wash saturates a
+// few layers either side. Reflooring moves the floor but not the contrast.
+const HEIGHT_SHADE_MID = 2;
+const HEIGHT_SHADE_MAX = 0.3;
+function heightWash(z) {
+  const t = Math.max(-1, Math.min(1, (z - HEIGHT_SHADE_MID) / 3));
+  return t < 0
+    ? `rgba(0, 0, 0, ${(-t * HEIGHT_SHADE_MAX).toFixed(3)})`
+    : `rgba(255, 255, 255, ${(t * HEIGHT_SHADE_MAX).toFixed(3)})`;
+}
+
 function drawCrate(g, X0, Y0, zb, zt, isTop) {
-  return drawPrism(g, X0, Y0, X0 + CELL, Y0 + CELL, zb, zt, CRATE, { seam: true, lid: isTop, top: isTop ? LID_FILL : CRATE.sideY });
+  const at = drawPrism(g, X0, Y0, X0 + CELL, Y0 + CELL, zb, zt, CRATE, { seam: true, lid: isTop, top: isTop ? LID_FILL : CRATE.sideY });
+  // Each layer is washed by its own top height, so the sides step up the stack too.
+  const wash = heightWash(zt);
+  poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], wash, null);
+  if (PERSPECTIVE) {
+    for (const [a, b, c, d] of crateSides(X0, Y0, zb, zt)) poly(g, [a, b, c, d], wash, null);
+  }
+  return at;
+}
+
+// The side faces drawPrism draws for a crate, as screen quads.
+function crateSides(X0, Y0, zb, zt) {
+  const X1 = X0 + CELL;
+  const Y1 = Y0 + CELL;
+  const edges = [];
+  if (geo.cx < X0) edges.push([[X0, Y0], [X0, Y1]]);
+  if (geo.cx > X1) edges.push([[X1, Y0], [X1, Y1]]);
+  if (geo.cy < Y0) edges.push([[X0, Y0], [X1, Y0]]);
+  if (geo.cy > Y1) edges.push([[X0, Y1], [X1, Y1]]);
+  return edges.map(([a, b]) => [project(a[0], a[1], zb), project(b[0], b[1], zb), project(b[0], b[1], zt), project(a[0], a[1], zt)]);
 }
 
 // Floor is crate tops at height 0, unnumbered.
@@ -280,6 +353,7 @@ function drawFloorTile(g, br, bc) {
   const at = (u, v) => [X0 + CELL * u, Y0 + CELL * v];
   poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], LID_FILL, null);
   drawLidMarks(g, at, CRATE, 0.5); // floor: a fainter bevel than the stacks
+  poly(g, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)], heightWash(0), null);
   // Floor is unnumbered until the whole room has been lifted; then it shows its height too.
   if (view.offset > 0) drawNumber(g, at, 1, view.offset, 0.8);
 }
@@ -586,7 +660,7 @@ function render() {
         // paint that direction as pushable.
         const out = step(level, current.game, d, {
           soft: true, justEnough: state.settings.justEnough,
-          slideClimb: state.settings.slideClimb, linePush: state.settings.linePush,
+          ...ruleOpts(),
         });
         const kind = out.result === "pushed" || out.result === "slid" ? "push"
           : out.result === "blocked" && out.reason === "drop" ? "drop"
@@ -658,7 +732,7 @@ function settle() {
   syncView();
   render();
   updateHud();
-  if (state.current.status === "won" && state.levelIndex + 1 < LEVELS.length) {
+  if (state.current.status === "won" && state.levelIndex + 1 < state.world.levels.length) {
     openLevel(state.levelIndex + 1, "replace");
   }
 }
@@ -771,7 +845,7 @@ function readyFacing() {
   const order = [0, 1, 2, 3];
   for (const wanted of ["walked", "slid", "pushed"]) {
     for (const d of order) {
-      if (step(level, state.current.game, d, { soft: true, slideClimb: state.settings.slideClimb, linePush: state.settings.linePush }).result === wanted) return d;
+      if (step(level, state.current.game, d, { soft: true, ...ruleOpts() }).result === wanted) return d;
     }
   }
   return 1;
@@ -804,6 +878,13 @@ function fallPhases(from, to, d) {
   ];
 }
 
+// The exit cell next to `pile` in direction d. The exit is inert like a wall, so
+// the neighbour table has no entry for it.
+function exitCell(pile, d) {
+  const { width } = state.level;
+  return pile + DIRS[d].dc + DIRS[d].dr * width;
+}
+
 function nudgePhase(d) {
   const pl = view.player;
   return {
@@ -827,7 +908,7 @@ function pushPhases(prevGame, out, d) {
   const { level } = state;
   const pos = prevGame.pos;
   const pile = level.nbrs[pos][d];
-  const nbrs = state.settings.linePush
+  const nbrs = ruleOpts().linePush
     ? [pos, level.nbrs[pile][d]].filter((n) => n >= 0)
     : level.nbrs[pile].filter((n) => n >= 0);
   const pc = cellCentre(pile);
@@ -902,6 +983,28 @@ function pushPhases(prevGame, out, d) {
     for (const n of nbrs) hs[n] += 1;
   }
 
+  // A copy sent onto the column of light floats away up it, on the last round
+  // (it changes no height). It rides along with the drifting copies of the
+  // second phase of that round.
+  if (out.floated >= 0 && phases.length) {
+    const ec = cellCentre(exitCell(pile, out.floated));
+    const last = phases[phases.length - 1];
+    const drift = last.update;
+    const lastTop = hs[pile] + 1; // pile height before the final round
+    last.update = (t) => {
+      drift(t);
+      const e = easeOut(Math.min(1, t * 1.6));
+      const rise = easeInOut(t);
+      const z = lastTop - 1 + 1.1 + 3.2 * rise;
+      if (t < 1) {
+        view.ghosts.push({ x: lerp(pc.x, ec.x, e), y: lerp(pc.y, ec.y, e), z, lift: z - lastTop + 1, alpha: 0.95 * (1 - rise * rise) });
+        view.glow = Math.sin(Math.PI * t);
+      } else {
+        view.glow = 0;
+      }
+    };
+  }
+
   // Reflooring needs no animation: the numbers just keep counting up, via the offset.
   return phases;
 }
@@ -929,7 +1032,7 @@ function syncView() {
 function loadLevel(index) {
   finishAnimation();
   state.levelIndex = index;
-  state.level = parseLevel(LEVELS[index].text);
+  state.level = parseLevel(state.world.levels[index].text);
   setupGeometry();
   view.player.facing = 1;
   restart();
@@ -979,6 +1082,11 @@ function isFlatWinLevel(level) {
   return level.target < 0 && level.exit < 0;
 }
 
+function lastLevelMessage() {
+  if (state.levelIndex + 1 < state.world.levels.length) return "";
+  return WORLD_LIST ? `That was the last level in ${state.world.name}.` : "That was the last level.";
+}
+
 function move(d) {
   finishAnimation();
   const cur = state.current;
@@ -986,8 +1094,7 @@ function move(d) {
   const { level } = state;
   const flatWin = isFlatWinLevel(level);
   const opts = {
-    soft: state.settings.gentle, justEnough: state.settings.justEnough,
-    slideClimb: state.settings.slideClimb, linePush: state.settings.linePush,
+    soft: state.settings.gentle, justEnough: state.settings.justEnough, ...ruleOpts(),
   };
   const from = cur.game.pos;
   const to = level.nbrs[from][d];
@@ -1015,15 +1122,15 @@ function move(d) {
     phases = out.result === "slid" ? [slidePhases(cur.game, out, d)] : pushPhases(cur.game, out, d);
     if (flatWin && isFlat(level, out.state.h)) {
       next.status = "won";
-      next.message = state.levelIndex + 1 < LEVELS.length ? "" : "That was the last level.";
-      state.solved.add(state.levelIndex);
+      next.message = lastLevelMessage();
+      state.solved.add(solvedKey(state.world, state.levelIndex));
       saveStorage();
     }
   } else if (out.result === "won") {
     next.status = "won";
-    next.message = state.levelIndex + 1 < LEVELS.length ? "" : "That was the last level.";
+    next.message = lastLevelMessage();
     phases = level.exit >= 0 ? [exitPhase(from, d)] : [walkPhase(from, to)];
-    state.solved.add(state.levelIndex);
+    state.solved.add(solvedKey(state.world, state.levelIndex));
     saveStorage();
   } else if (out.result === "died") {
     next.status = "died";
@@ -1043,8 +1150,7 @@ function advice() {
   if (!state.cheat || cur.status !== "playing") return null;
   const flatWin = isFlatWinLevel(state.level);
   const out = solve(state.level, {
-    from: cur.game, justEnough: state.settings.justEnough,
-    slideClimb: state.settings.slideClimb, linePush: state.settings.linePush,
+    from: cur.game, justEnough: state.settings.justEnough, ...ruleOpts(),
     maxHeight: 12, flatWin,
   });
   return out;
@@ -1054,11 +1160,11 @@ function updateHud() {
   const cur = state.current;
   if (!cur) return; // no level loaded yet (e.g. a settings checkbox toggled from the home screen)
   const settled = !anim;
-  const total = LEVELS.length;
-  const level = LEVELS[state.levelIndex];
+  const total = state.world.levels.length;
+  const level = state.world.levels[state.levelIndex];
   elements.title.textContent = TEST
     ? `${level.name} (${state.levelIndex + 1} of ${total})${level.info ? ` · ${level.info}` : ""}`
-    : `Level ${state.levelIndex + 1} of ${total}`;
+    : `${WORLD_LIST ? `${state.world.name} · ` : ""}Level ${state.levelIndex + 1} of ${total}`;
   if (elements.select) elements.select.value = String(state.levelIndex);
   if (elements.cheat) elements.cheat.setAttribute("aria-pressed", String(state.cheat));
   elements.counts.textContent = `Moves ${cur.moves}  ·  Pushes ${cur.pushes}`;
@@ -1087,14 +1193,30 @@ function updateHud() {
 
 // ---------------------------------------------------------------- screens
 
-// Two screens on one page: the home screen (story, settings, level grid) and the
-// play screen. The address bar follows along ("?level=3" while playing, plain
-// while at home) so the back button, reloads and shared links all work.
-function buildGrid() {
-  const next = LEVELS.findIndex((_, i) => !state.solved.has(i));
-  elements.grid.replaceChildren();
-  LEVELS.forEach((level, i) => {
-    const solved = state.solved.has(i);
+// Three screens on the main page: home (the worlds), a world (its rule and
+// levels) and play. The test pages have just the home screen, with every level
+// in one grid, and play. The address bar follows along ("?w=line" at a world,
+// "?w=line&level=3" while playing, plain at home) so the back button, reloads
+// and shared links all work. A bare "?level=3" is the classic world, as it was
+// before worlds.
+function levelUrl(world, i) {
+  return WORLD_LIST ? `?w=${world.id}&level=${i + 1}` : `?level=${i + 1}`;
+}
+
+function showOnly(screen) {
+  for (const other of [elements.menuScreen, elements.worldScreen, elements.playScreen]) {
+    if (other) other.hidden = other !== screen;
+  }
+  window.scrollTo(0, 0);
+}
+
+// Level tiles for world.levels[from..to), numbered by position in the world.
+function fillGrid(container, world, from, to) {
+  const next = world.levels.findIndex((_, i) => !isSolved(world, i));
+  container.replaceChildren();
+  for (let i = from; i < to; i += 1) {
+    const level = world.levels[i];
+    const solved = isSolved(world, i);
     const tile = document.createElement("button");
     tile.type = "button";
     const candidate = TEST && i >= TEST.realCount;
@@ -1108,39 +1230,116 @@ function buildGrid() {
       tick.textContent = "✓";
       tile.appendChild(tick);
     }
-    tile.addEventListener("click", () => openLevel(i, "push"));
-    elements.grid.appendChild(tile);
+    tile.addEventListener("click", () => {
+      state.world = world;
+      openLevel(i, "push");
+    });
+    container.appendChild(tile);
+  }
+}
+
+function buildHome() {
+  if (!WORLD_LIST) {
+    fillGrid(elements.grid, state.world, 0, state.world.levels.length);
+    elements.progress.textContent = `${solvedCount(state.world)} of ${state.world.levels.length} solved`;
+    return;
+  }
+  elements.worldList.replaceChildren();
+  for (const world of WORLD_LIST) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "world-card";
+    const name = document.createElement("strong");
+    name.textContent = world.name;
+    const tagline = document.createElement("span");
+    tagline.textContent = world.tagline;
+    const progress = document.createElement("small");
+    progress.textContent = `${solvedCount(world)} of ${world.levels.length} solved`;
+    card.append(name, tagline, progress);
+    card.addEventListener("click", () => showWorld(world, "push"));
+    elements.worldList.appendChild(card);
+  }
+}
+
+function buildWorld(world) {
+  elements.worldTitle.textContent = world.name;
+  elements.worldRule.replaceChildren(...world.rule.map((text) => {
+    const p = document.createElement("p");
+    p.textContent = text;
+    return p;
+  }));
+  elements.worldLevels.replaceChildren();
+  world.groups.forEach((group, g) => {
+    const end = g + 1 < world.groups.length ? world.groups[g + 1].start : world.levels.length;
+    const heading = document.createElement("h2");
+    heading.textContent = group.title;
+    const grid = document.createElement("div");
+    grid.className = "level-grid";
+    grid.setAttribute("role", "list");
+    fillGrid(grid, world, group.start, end);
+    elements.worldLevels.append(heading);
+    if (group.blurb) {
+      const blurb = document.createElement("p");
+      blurb.className = "group-blurb";
+      blurb.textContent = group.blurb;
+      elements.worldLevels.append(blurb);
+    }
+    elements.worldLevels.append(grid);
   });
-  elements.progress.textContent = `${state.solved.size} of ${LEVELS.length} solved`;
+}
+
+// mode: "push" adds a history entry, "replace" swaps the current one, "none"
+// leaves the address alone (already there).
+function setAddress(url, mode) {
+  if (mode === "push") history.pushState(null, "", url);
+  else if (mode === "replace") history.replaceState(null, "", url);
 }
 
 function showMenu(mode) {
   finishAnimation();
-  elements.playScreen.hidden = true;
-  elements.menuScreen.hidden = false;
+  showOnly(elements.menuScreen);
   document.title = "Crated In";
-  buildGrid();
-  if (mode === "push") history.pushState(null, "", location.pathname);
-  window.scrollTo(0, 0);
+  buildHome();
+  setAddress(location.pathname, mode);
 }
 
-// mode: "push" adds a history entry, "replace" swaps the current one (moving on
-// to the next room), "none" leaves the address alone (already there).
+function showWorld(world, mode) {
+  finishAnimation();
+  state.world = world;
+  showOnly(elements.worldScreen);
+  document.title = `${world.name} · Crated In`;
+  buildWorld(world);
+  setAddress(`?w=${world.id}`, mode);
+}
+
+// Back from playing: to the world's levels, or on the test pages to the one menu.
+function leavePlay(mode) {
+  if (WORLD_LIST) showWorld(state.world, mode);
+  else showMenu(mode);
+}
+
+// Moving on to the next room uses mode "replace".
 function openLevel(index, mode) {
-  elements.menuScreen.hidden = true;
-  elements.playScreen.hidden = false;
-  document.title = `${LEVELS[index].name} · Crated In`;
-  const url = `?level=${index + 1}`;
-  if (mode === "push") history.pushState(null, "", url);
-  else if (mode === "replace") history.replaceState(null, "", url);
+  showOnly(elements.playScreen);
+  document.title = `${state.world.levels[index].name} · Crated In`;
+  setAddress(levelUrl(state.world, index), mode);
   loadLevel(index);
-  window.scrollTo(0, 0);
 }
 
 function route() {
-  const requested = Number(new URLSearchParams(location.search).get("level")) - 1;
-  if (requested >= 0 && requested < LEVELS.length) openLevel(requested, "none");
-  else showMenu("none");
+  const params = new URLSearchParams(location.search);
+  const requested = Number(params.get("level")) - 1;
+  if (WORLD_LIST) {
+    const world = WORLD_LIST.find((w) => w.id === params.get("w")) || (params.has("level") ? LEGACY_WORLD : null);
+    if (world) state.world = world;
+    if (world && requested >= 0 && requested < world.levels.length) openLevel(requested, "none");
+    else if (world) showWorld(world, "none");
+    else showMenu("none");
+  } else if (requested >= 0 && requested < state.world.levels.length) {
+    openLevel(requested, "none");
+  } else {
+    showMenu("none");
+  }
 }
 
 function init() {
@@ -1154,7 +1353,7 @@ function init() {
   });
   if (TEST) {
     elements.enough.checked = state.settings.justEnough;
-    LEVELS.forEach((level, i) => elements.select.appendChild(new Option(level.name, String(i))));
+    state.world.levels.forEach((level, i) => elements.select.appendChild(new Option(level.name, String(i))));
     elements.select.addEventListener("change", () => openLevel(Number(elements.select.value), "push"));
     elements.cheat.addEventListener("click", () => {
       state.cheat = !state.cheat;
@@ -1185,7 +1384,8 @@ function init() {
     }
   }
 
-  elements.menuButton.addEventListener("click", () => showMenu("push"));
+  elements.menuButton.addEventListener("click", () => leavePlay("push"));
+  if (elements.worldsButton) elements.worldsButton.addEventListener("click", () => showMenu("push"));
   window.addEventListener("popstate", route);
   elements.undo.addEventListener("click", undo);
   elements.restart.addEventListener("click", restart);
@@ -1202,7 +1402,7 @@ function init() {
     } else if (event.key === "r" || event.key === "R") {
       restart();
     } else if (event.key === "m" || event.key === "M" || event.key === "Escape") {
-      showMenu("push");
+      leavePlay("push");
     } else if (event.key === "c" || event.key === "C") {
       state.cheat = !state.cheat;
       updateHud();

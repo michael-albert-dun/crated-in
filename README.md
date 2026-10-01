@@ -69,12 +69,40 @@ keys or WASD move, tapping a neighbouring square works on touch, `z` undoes,
 `r` restarts, `c` peeks at a shortest solution and `m` (or Escape, or the Menu
 button) goes back to the home screen.
 
-The home screen is the index page: a short story, how to play, the settings
-(just gentle mode) and a grid of level
-tiles. Solved levels show a tick and the first unsolved one is outlined; picking
-a tile goes straight into that level. Solved levels are remembered in local
-storage. It is one page with two screens; the address bar follows (`?level=N`
-while playing, plain at home), so the back button and reloads work.
+The index page has three screens. **Home**: a short story, the basics, one card
+per *world* (with progress) and the settings (gentle mode, move hints). **World**:
+that world's rule in a few paragraphs, then its level sets (the first is a
+"Warm-up" that teaches the mechanic) as grids of tiles; solved levels show a tick
+and the first unsolved one is outlined. **Play**: one room; `m`/Escape/the Levels
+button goes back to the world screen. Solved levels are remembered in local
+storage, per world (`world:index`; older saves of plain level numbers are read
+as the classic world). The address bar follows (`?w=line` at a world,
+`?w=line&level=3` while playing, plain at home), and a bare `?level=N` still means
+the classic world, so the back button, reloads and old links work.
+
+Worlds are defined in `src/worlds.js` (id, name, tagline, rule text, engine rule
+flags, level groups). A world's rules come from there, not from checkboxes, so a
+level can't be played under the wrong ones; adding a world is adding an entry (the
+home cards flow into as many columns as fit). Current worlds: Spreading Stacks
+(classic push), Line Push (`linePush`) and Equalise (flat-board win). The test and
+pool pages don't load `worlds.js`: they have one implicit world and keep their
+rule checkboxes. Slide-or-climb is meant to join classic and line later as a
+second level group, unlocked after some progress; not built.
+
+**Pushing onto the light** (2026-10-01): the exit cell counts as open for a push. With
+`linePush`, a pile whose far side is the exit can be pushed: the copy sent there
+floats away up the column of light and adds nothing (`step` reports `floated`,
+the direction from pile to exit). In the classic spread the exit was already a
+non-receiver, so heights are identical; `floated` is only there so the UI plays the
+floating-crate animation. Worlds are ordered Line Push, Spreading Stacks (the "old
+wand"), Equalise. This changed line-push solutions: ring-room Levels 2 and 3 now
+have 7-move shortcuts along the top row (recorded solutions of 17 and 33 moves are
+stale), the other line-push levels are unchanged. Fixed by turning the cell
+next to the exit on the top row (0,4) into a wall in both: the original 17- and
+33-move solutions are optimal again. See worlds.js.
+
+The line-push warm-up (`src/levels/levels-linepush-intro.js`) is three
+solver-checked first drafts, and Equalise has just its one tutorial level so far.
 
 Reflooring changes no rule, since every rule depends only on height differences,
 so the UI hides it: the engine still normalises to "lowest height is 0" (which

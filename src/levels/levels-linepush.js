@@ -53,7 +53,7 @@ const LEVELS_LINEPUSH = [
     info: "6x4 ring room, 2 pushes, 17 moves -- needs the loop (top alone can't reach the exit)",
     solution: "RRDLLDDDRRRRRRUUU",
     text: `
-      0S  0  0  2  3  E
+      0S  0  0  2  #  E
       2  2  1  0  0  3
       4  #  #  #  #  3
       2  2  3  2  4  1`,
@@ -63,7 +63,7 @@ const LEVELS_LINEPUSH = [
     info: "6x4 ring room, 6 pushes, 34 moves -- loops the bottom corridor twice before finishing via the top",
     solution: "RDRRULDRLDDRRRRRRRULLLLLUURRRRRRU",
     text: `
-      0S  0  1  0  4  E
+      0S  0  1  0  #  E
       2  0  1  4  0  0
       2  #  #  #  #  4
       1  1  1  3  3  1`,

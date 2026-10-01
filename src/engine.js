@@ -271,7 +271,11 @@ function spreadLine(h, at, from, beyond) {
 //   "pushed"   the neighbour was 2+ higher, so it spread; the player stays put
 //              (push-then-move: you walk up on a later move once the gap is 1).
 // Pushed and slid results also carry `reflooded` (layers removed); pushed also
-// carries `spreads`.
+// carries `spreads` and `floated`: the direction from the pile to the exit
+// cell when the exit is among the squares the push reaches, else -1. The exit
+// is a column of light with no height, so the copy sent there floats away and
+// changes nothing: it only matters for the animation (and, with linePush, for
+// whether the push is allowed at all).
 //
 // opts.soft        a fatal drop is just blocked instead of killing you.
 // opts.justEnough  variant: one push repeats the spread until the gap is at
@@ -327,15 +331,23 @@ function step(level, state, d, opts = {}) {
   }
   if (opts.linePush) {
     const beyond = level.nbrs[to][d];
-    if (beyond < 0) return { state, result: "blocked", reason: "push" };
+    // The exit cell counts as open for a line push: the copy that would land
+    // there floats away up the column of light (see `floated` above).
+    const floats = beyond < 0 && level.exitStep[to] === d;
+    if (beyond < 0 && !floats) return { state, result: "blocked", reason: "push" };
     const h = Int16Array.from(state.h);
     let spreads = 0;
     do {
-      spreadLine(h, to, from, beyond);
+      if (floats) {
+        h[to] -= 1;
+        h[from] += 1;
+      } else {
+        spreadLine(h, to, from, beyond);
+      }
       spreads += 1;
     } while (opts.justEnough && h[to] - h[from] >= 2);
     const reflooded = reflood(level, h);
-    return { state: { h, pos: from }, result: "pushed", spreads, reflooded };
+    return { state: { h, pos: from }, result: "pushed", spreads, reflooded, floated: floats ? d : -1 };
   }
   const h = Int16Array.from(state.h);
   let spreads = 0;
@@ -344,7 +356,7 @@ function step(level, state, d, opts = {}) {
     spreads += 1;
   } while (opts.justEnough && h[to] - h[from] >= 2);
   const reflooded = reflood(level, h);
-  return { state: { h, pos: from }, result: "pushed", spreads, reflooded };
+  return { state: { h, pos: from }, result: "pushed", spreads, reflooded, floated: level.exitStep[to] };
 }
 
 function stateKey(state) {
