@@ -1359,6 +1359,9 @@ function route() {
 
 function init() {
   loadStorage();
+  // A pool page for a line-push batch (pool-config.js) starts with line push on,
+  // whatever was saved: its levels only make sense under it.
+  if (TEST && TEST.linePush) state.settings.linePush = true;
   elements.gentle.checked = state.settings.gentle;
   elements.hints.checked = state.settings.hints;
   elements.hints.addEventListener("change", () => {

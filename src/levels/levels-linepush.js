@@ -80,6 +80,16 @@ const LEVELS_LINEPUSH = [
   },
   {
     name: "Level 5",
+    info: "4x4, 5 pushes, 13 moves, 3 traps -- push one way just to lift yourself high enough to walk out another (from the pool, found by experiments/line-corners.js)",
+    solution: "UUURRUDRULRUU",
+    text: `
+      #  0  5  E
+      4  5  0  4
+      4  4  1  4
+      0S  4  3  #`,
+  },
+  {
+    name: "Level 6",
     info: "4x4, 5 pushes, 15 moves, 2 traps",
     solution: "UUURDRRRUULURRU",
     text: `
@@ -89,7 +99,27 @@ const LEVELS_LINEPUSH = [
       0S  1  3  1`,
   },
   {
-    name: "Level 6",
+    name: "Level 7",
+    info: "4x4, 5 pushes, 17 moves, 1 trap (from the pool, found by experiments/line-corners.js)",
+    solution: "RRRRUUUDLLURUURRR",
+    text: `
+      3  2  0  E
+      3  0  5  3
+      1  3  5  5
+      1S  3  3  0`,
+  },
+  {
+    name: "Level 8",
+    info: "4x4, 5 pushes, 17 moves, 2 traps (from the pool, found by experiments/line-corners.js)",
+    solution: "URUURDLDRRRRRUURU",
+    text: `
+      4  2  0  E
+      #  2  5  3
+      0  0  4  #
+      1S  5  3  2`,
+  },
+  {
+    name: "Level 9",
     info: "4x4, 8 pushes, 22 moves, 5 traps",
     solution: "RULURURDLUUURULUURRRRR",
     text: `

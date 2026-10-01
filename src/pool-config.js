@@ -2,4 +2,4 @@
 // real level list plus extras, and the test tools switch on as usual. Load
 // after engine.js and pool.js and before game.js; do not load levels.js.
 const LEVELS = POOL;
-window.CRATED_TEST = { realCount: 0, pool: true };
+window.CRATED_TEST = { realCount: 0, pool: true, linePush: true };
