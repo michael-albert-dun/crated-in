@@ -14,16 +14,15 @@
 //            the first is solved (not built yet).
 // Progress is kept by position in the world's flat level list, so append new
 // levels to the end of a group's array only if that group is the last one.
-// Order here is the order on the home screen: Line Push first (the more natural
-// mechanic), Spreading Stacks as the older wand.
+// Order here is the order on the home screen: Three in a Row (line push) first (the more natural
+// mechanic), Spread the Load (classic) as the older wand.
 const WORLDS = [
   {
     id: "line",
-    name: "Line Push",
-    tagline: "A push only reaches you and the square behind the pile.",
+    name: "Three in a Row",
+    tagline: "One crate under you, one just beyond the pile.",
     rule: [
-      "Here the wand is more disciplined. Pushing a stack that's too tall to climb still destroys its top crate, but only two copies appear: one on your own square and one on the square just past the pile, in the same direction. Nothing lands at the sides.",
-      "If there's no square past the pile (a wall, a pillar or the edge of the room) the push doesn't happen at all. The column of light is the exception: a copy pushed onto it floats away up the light, so you can push a stack straight into the exit.",
+      "The wand puts a crate underneath you, and in the space just beyond the original pile.",
     ],
     rules: { linePush: true },
     groups: [
@@ -33,11 +32,10 @@ const WORLDS = [
   },
   {
     id: "classic",
-    name: "Spreading Stacks",
-    tagline: "The old wand: a push spreads the top crate over every neighbour.",
+    name: "Spread the Load",
+    tagline: "A crate on every side of the pile.",
     rule: [
-      "Point the wand at a stack that's too tall to climb (by pushing against it). The crate on top is destroyed, but a copy of it drifts down onto each neighbouring stack, including yours, so you're lifted a level.",
-      "A stack in the open has four neighbours, one in a corner has two: where the pile sits changes where the crates go. (A copy that lands on the column of light just floats away.)",
+      "The wand puts a crate in every possible position adjacent to the pile it came from.",
     ],
     rules: {},
     groups: [
@@ -47,10 +45,10 @@ const WORLDS = [
   },
   {
     id: "equalise",
-    name: "Equalise",
+    name: "Level Best",
     tagline: "No exit: make the whole room flat.",
     rule: [
-      "There is no column of light in these rooms. Instead the way out opens once every stack is the same height. Pushing works as in Spreading Stacks (the old wand), and whenever the whole room is lifted level the floor is lowered to match.",
+      "There is no column of light in these rooms. Instead the way out opens once every stack is the same height. The wand works as in Spread the Load, and whenever the whole room is lifted level the floor is lowered to match.",
     ],
     rules: {},
     groups: [

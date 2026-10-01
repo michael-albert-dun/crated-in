@@ -83,8 +83,8 @@ the classic world, so the back button, reloads and old links work.
 Worlds are defined in `src/worlds.js` (id, name, tagline, rule text, engine rule
 flags, level groups). A world's rules come from there, not from checkboxes, so a
 level can't be played under the wrong ones; adding a world is adding an entry (the
-home cards flow into as many columns as fit). Current worlds: Spreading Stacks
-(classic push), Line Push (`linePush`) and Equalise (flat-board win). The test and
+home cards flow into as many columns as fit). Current worlds: Spread the Load
+(classic push), Three in a Row (`linePush`) and Level Best (equalise, flat-board win). The test and
 pool pages don't load `worlds.js`: they have one implicit world and keep their
 rule checkboxes. Slide-or-climb is meant to join classic and line later as a
 second level group, unlocked after some progress; not built.
@@ -94,7 +94,7 @@ second level group, unlocked after some progress; not built.
 floats away up the column of light and adds nothing (`step` reports `floated`,
 the direction from pile to exit). In the classic spread the exit was already a
 non-receiver, so heights are identical; `floated` is only there so the UI plays the
-floating-crate animation. Worlds are ordered Line Push, Spreading Stacks (the "old
+floating-crate animation. Worlds are ordered Three in a Row, Spread the Load (the "old
 wand"), Equalise. This changed line-push solutions: ring-room Levels 2 and 3 now
 have 7-move shortcuts along the top row (recorded solutions of 17 and 33 moves are
 stale), the other line-push levels are unchanged. Fixed by turning the cell
