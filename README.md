@@ -120,8 +120,10 @@ controls), with extra tools switched on by `src/test-config.js` setting
 are appended after the real ones (dashed tiles in the grid, "Candidate N" in the
 level menu), and the play screen gains a level dropdown, a level info line (size,
 pushes and the finder's measures) and a Cheat button (`c` does the same). The
-test options are move hints, which outline each neighbouring square green for a
-walk, amber for a push and red for a fatal drop, plus gentle mode, the
+test options are move hints (also a setting on the main page), which draw a thin
+green path joining every square you can reach by walking without pushing (fading
+out as a push starts and back in once it settles) and outline each neighbouring
+square amber for a push and red for a fatal drop, plus gentle mode, the
 just-enough push variant, slide-or-climb, and line push (see Mechanics below).
 Its settings and solved ticks are stored separately from the main page
 (`crated-in.test.*` keys).

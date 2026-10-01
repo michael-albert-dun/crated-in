@@ -364,6 +364,72 @@ function drawFloorTile(g, br, bc) {
   if (view.offset > 0) drawNumber(g, at, 1, view.offset, 0.8);
 }
 
+// Everything you can reach from where you stand by walking alone (no pushes):
+// cells joined by steps of at most one up or down, which is symmetric, so the
+// region is a connected set of cells and its links are exactly the adjacent
+// pairs inside it that differ by at most 1. `exitLinks` are cells in the region
+// beside the exit, where a step wins.
+function walkRegion(level, game) {
+  const seen = new Set([game.pos]);
+  const queue = [game.pos];
+  const links = [];
+  for (let head = 0; head < queue.length; head += 1) {
+    const c = queue[head];
+    for (const n of level.nbrs[c]) {
+      if (n < 0 || Math.abs(game.h[n] - game.h[c]) > 1) continue;
+      if (!seen.has(n)) {
+        seen.add(n);
+        queue.push(n);
+      }
+      if (n > c) links.push([c, n]);
+    }
+  }
+  const exitLinks = level.exit >= 0 ? queue.filter((c) => level.exitStep[c] >= 0) : [];
+  return { cells: queue, links, exitLinks };
+}
+
+// The hint itself (part of "Show move hints", in place of colouring the walkable
+// neighbours): a green line between the centres of each linked pair.
+const pathFade = { region: null, alpha: 1, raf: 0, afterPush: false };
+
+function refreshPaths() {
+  const { level, current } = state;
+  pathFade.region = current && current.status === "playing" ? walkRegion(level, current.game) : null;
+}
+
+// Eases the hint's opacity to `to`; instant under reduced motion.
+function fadePaths(to, ms) {
+  cancelAnimationFrame(pathFade.raf);
+  const from = pathFade.alpha;
+  const start = performance.now();
+  if (REDUCED_MOTION) {
+    pathFade.alpha = to;
+    return;
+  }
+  const frame = (now) => {
+    const t = Math.min(1, (now - start) / ms);
+    pathFade.alpha = lerp(from, to, easeInOut(t));
+    if (!anim) render(); // during an animation its own frames redraw
+    if (t < 1) pathFade.raf = requestAnimationFrame(frame);
+  };
+  pathFade.raf = requestAnimationFrame(frame);
+}
+
+function drawWalkPaths(g, region, alpha = 1) {
+  const at = (i) => {
+    const c = cellCentre(i);
+    return [cellX(c.x - 0.5) + CELL / 2, cellY(c.y - 0.5) + CELL / 2];
+  };
+  const stroke = HINT_COLORS.walk;
+  const group = svgEl("g", { opacity: 0.55 * alpha, "pointer-events": "none" }, g);
+  for (const [a, b] of region.links) line(group, at(a), at(b), stroke, 3);
+  for (const c of region.exitLinks) line(group, at(c), at(state.level.exit), stroke, 3);
+  for (const c of region.cells) {
+    const [x, y] = at(c);
+    svgEl("circle", { cx: x, cy: y, r: 3.2, fill: stroke }, group);
+  }
+}
+
 // The number stencilled on a lid: the height plus the display offset.
 function drawStackNumber(g, at, hd) {
   drawNumber(g, at, scale(hd), Math.round(hd) + view.offset, 0.8);
@@ -638,7 +704,12 @@ function render() {
     // The copy that slides in under the player is drawn beneath them.
     items.push({ key: ghost.under ? view.player.z + 0.4 : ghost.z + 1, dist: 0, draw: (g) => drawGhost(g, ghost) });
   }
-  items.push({ key: view.beam > 0 ? 1003 : view.player.z + 0.5, dist: 0, draw: drawPlayer });
+  // Walkable-region hint: above every crate but under the player. Drawn from a
+  // snapshot (pathFade.region) so it can fade out as a push starts and back in
+  // for the new region once the push has settled.
+  const showPaths = state.settings.hints && current.status === "playing" && pathFade.region && pathFade.alpha > 0.01;
+  if (showPaths) items.push({ key: 990, dist: 0, draw: (g) => drawWalkPaths(g, pathFade.region, pathFade.alpha) });
+  items.push({ key: view.beam > 0 ? 1003 : showPaths ? 995 : view.player.z + 0.5, dist: 0, draw: drawPlayer });
   if (exit && view.rise > 0) items.push({ key: 1001, dist: 0, draw: (g) => drawMotes(g, exit, view.rise) });
   if (view.beam > 0) {
     const [sx, sy] = [cellX(level.start % level.width), cellY(Math.floor(level.start / level.width))];
@@ -672,7 +743,8 @@ function render() {
           : out.result === "blocked" && out.reason === "drop" ? "drop"
           : out.result === "walked" || out.result === "won" ? "walk"
           : null;
-        if (kind) {
+        // Walkable squares are shown by the green path instead (drawWalkPaths).
+        if (kind && kind !== "walk") {
           svgEl("rect", {
             x: X0 + 3, y: Y0 + 3, width: CELL - 6, height: CELL - 6, rx: 6, fill: HINT_COLORS[kind], "fill-opacity": 0.28,
             stroke: HINT_COLORS[kind], "stroke-width": 4, "pointer-events": "none",
@@ -1029,6 +1101,17 @@ function syncView() {
   view.beam = 0;
   view.beamRise = 0;
   view.offset = state.current.offset;
+  // The walkable-region hint: after a push the new region fades in; otherwise
+  // (walks, undo, restart, a new level) it simply follows the board.
+  refreshPaths();
+  cancelAnimationFrame(pathFade.raf);
+  if (pathFade.afterPush) {
+    pathFade.afterPush = false;
+    pathFade.alpha = 0;
+    fadePaths(1, 420);
+  } else {
+    pathFade.alpha = 1;
+  }
   Object.assign(pl, {
     x: c.x, y: c.y, base: game.h[game.pos], z: game.h[game.pos],
     alpha: status === "playing" ? 1 : 0, scale: 1, leanX: 0, leanY: 0,
@@ -1125,6 +1208,8 @@ function move(d) {
   let phases;
   if (out.result === "pushed" || out.result === "slid") {
     next.pushes += 1;
+    pathFade.afterPush = true;
+    fadePaths(0, 200);
     phases = out.result === "slid" ? [slidePhases(cur.game, out, d)] : pushPhases(cur.game, out, d);
     if (flatWin && isFlat(level, out.state.h)) {
       next.status = "won";

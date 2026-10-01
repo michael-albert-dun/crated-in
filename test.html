@@ -9,7 +9,7 @@
     <script defer src="src/levels/levels.js?v=20260929a"></script>
     <script defer src="src/levels-test/candidates.js?v=20260930c"></script>
     <script defer src="src/test-config.js?v=20260927a"></script>
-    <script defer src="src/game.js?v=20261001e"></script>
+    <script defer src="src/game.js?v=20261002c"></script>
   </head>
   <body>
     <main>
@@ -26,7 +26,7 @@
 
         <h2>Test options</h2>
         <div class="settings">
-          <label><input type="checkbox" id="opt-hints" /> Show move hints (<span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
+          <label><input type="checkbox" id="opt-hints" /> Show move hints (a green line joins every square you can walk to; neighbours you would <span class="key push">push</span> or <span class="key drop">drop</span> from are coloured)</label>
           <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
           <label><input type="checkbox" id="opt-enough" /> Just-enough push (one bump spreads until you can walk)</label>
           <label><input type="checkbox" id="opt-slide" /> Slide-or-climb (a neighbour 1 higher slides forward if there's room, otherwise you climb it)</label>
