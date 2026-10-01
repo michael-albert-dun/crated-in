@@ -10,10 +10,10 @@
 const LEVELS_LINEPUSH_INTRO = [
   {
     name: "Level 1",
-    info: "3x1, 1 push into the light",
-    solution: "RRR",
+    info: "4x1, 1 push into the light",
+    solution: "RRRR",
     text: `
-      0S  2  E`,
+      0S  0  2  E`,
   },
   {
     name: "Level 2",
