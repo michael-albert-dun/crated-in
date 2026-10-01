@@ -415,7 +415,30 @@ function fadePaths(to, ms) {
   pathFade.raf = requestAnimationFrame(frame);
 }
 
+// Which walkable-region hint to draw: "border" (a soft green outline on every
+// square you can walk to, your own included) or "path" (the original thin green
+// line joining their centres, kept in drawWalkPathLines below to switch back to).
+const WALK_HINT_STYLE = "path";
+
 function drawWalkPaths(g, region, alpha = 1) {
+  if (WALK_HINT_STYLE === "path") drawWalkPathLines(g, region, alpha);
+  else drawWalkBorders(g, region, alpha);
+}
+
+function drawWalkBorders(g, region, alpha) {
+  const stroke = HINT_COLORS.walk;
+  const group = svgEl("g", { opacity: 0.4 * alpha, "pointer-events": "none" }, g);
+  for (const i of region.cells) {
+    const X0 = cellX(i % state.level.width);
+    const Y0 = cellY(Math.floor(i / state.level.width));
+    svgEl("rect", {
+      x: X0 + 3, y: Y0 + 3, width: CELL - 6, height: CELL - 6, rx: 6,
+      fill: "none", stroke, "stroke-width": 3,
+    }, group);
+  }
+}
+
+function drawWalkPathLines(g, region, alpha = 1) {
   const at = (i) => {
     const c = cellCentre(i);
     return [cellX(c.x - 0.5) + CELL / 2, cellY(c.y - 0.5) + CELL / 2];
@@ -743,7 +766,7 @@ function render() {
           : out.result === "blocked" && out.reason === "drop" ? "drop"
           : out.result === "walked" || out.result === "won" ? "walk"
           : null;
-        // Walkable squares are shown by the green path instead (drawWalkPaths).
+        // Walkable squares are shown by the green hint instead (drawWalkPaths).
         if (kind && kind !== "walk") {
           svgEl("rect", {
             x: X0 + 3, y: Y0 + 3, width: CELL - 6, height: CELL - 6, rx: 6, fill: HINT_COLORS[kind], "fill-opacity": 0.28,
