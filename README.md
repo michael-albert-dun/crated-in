@@ -84,7 +84,7 @@ Worlds are defined in `src/worlds.js` (id, name, tagline, rule text, engine rule
 flags, level groups). A world's rules come from there, not from checkboxes, so a
 level can't be played under the wrong ones; adding a world is adding an entry (the
 home cards flow into as many columns as fit). Current worlds: Spread the Load
-(classic push), Three in a Row (`linePush`) and Level Best (equalise, flat-board win). The test and
+(classic push), Three in a Row (`linePush`). The equalise variant (flat-board win) was taken off the main page on 2026-10-01 but its engine support, levels and pool page remain. The test and
 pool pages don't load `worlds.js`: they have one implicit world and keep their
 rule checkboxes. Slide-or-climb is meant to join classic and line later as a
 second level group, unlocked after some progress; not built.
@@ -95,14 +95,14 @@ floats away up the column of light and adds nothing (`step` reports `floated`,
 the direction from pile to exit). In the classic spread the exit was already a
 non-receiver, so heights are identical; `floated` is only there so the UI plays the
 floating-crate animation. Worlds are ordered Three in a Row, Spread the Load (the "old
-wand"), Equalise. This changed line-push solutions: ring-room Levels 2 and 3 now
+wand"). This changed line-push solutions: ring-room Levels 2 and 3 now
 have 7-move shortcuts along the top row (recorded solutions of 17 and 33 moves are
 stale), the other line-push levels are unchanged. Fixed by turning the cell
 next to the exit on the top row (0,4) into a wall in both: the original 17- and
 33-move solutions are optimal again. See worlds.js.
 
 The line-push warm-up (`src/levels/levels-linepush-intro.js`) is three
-solver-checked first drafts, and Equalise has just its one tutorial level so far.
+solver-checked first drafts.
 
 Reflooring changes no rule, since every rule depends only on height differences,
 so the UI hides it: the engine still normalises to "lowest height is 0" (which

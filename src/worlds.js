@@ -43,16 +43,4 @@ const WORLDS = [
       { title: "Rooms", levels: LEVELS.slice(3) },
     ],
   },
-  {
-    id: "equalise",
-    name: "Level Best",
-    tagline: "No exit: make the whole room flat.",
-    rule: [
-      "There is no column of light in these rooms. Instead the way out opens once every stack is the same height. The wand works as in Spread the Load, and whenever the whole room is lifted level the floor is lowered to match.",
-    ],
-    rules: {},
-    groups: [
-      { title: "Warm-up", levels: LEVELS_EQUALIZE },
-    ],
-  },
 ];

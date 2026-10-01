@@ -9,9 +9,8 @@
     <script defer src="src/levels/levels.js?v=20260929a"></script>
     <script defer src="src/levels/levels-linepush-intro.js?v=20261001c"></script>
     <script defer src="src/levels/levels-linepush.js?v=20261001b"></script>
-    <script defer src="src/levels/levels-equalize.js?v=20261001a"></script>
-    <script defer src="src/worlds.js?v=20261001e"></script>
-    <script defer src="src/game.js?v=20261001c"></script>
+    <script defer src="src/worlds.js?v=20261001f"></script>
+    <script defer src="src/game.js?v=20261001d"></script>
   </head>
   <body>
     <main>
@@ -50,9 +49,11 @@
 
         <details class="panel">
           <summary>Settings</summary>
-          <div class="settings">
+          <div id="home-settings">
+          <div class="settings" id="settings">
             <label><input type="checkbox" id="opt-gentle" /> Gentle mode (a drop that's too far is just blocked)</label>
             <label><input type="checkbox" id="opt-hints" /> Show move hints (colour each neighbouring square: <span class="key walk">walk</span> <span class="key push">push</span> <span class="key drop">drop</span>)</label>
+          </div>
           </div>
         </details>
       </section>
@@ -83,8 +84,12 @@
         <div class="bar">
           <button type="button" id="undo">Undo (z)</button>
           <button type="button" id="restart">Restart (r)</button>
+          <button type="button" id="settings-button" aria-expanded="false" aria-controls="play-settings">Settings</button>
           <span id="counts"></span>
         </div>
+
+        <!-- The home screen's settings move in here while you play (see game.js). -->
+        <div id="play-settings" hidden></div>
 
         <p id="cheat-status" role="status"></p>
       </section>

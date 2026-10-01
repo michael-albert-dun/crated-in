@@ -320,3 +320,11 @@ h2 {
   font-size: 1.05rem;
   font-weight: 600;
 }
+
+#play-settings {
+  margin-top: 0.6rem;
+  padding: 0.2rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}

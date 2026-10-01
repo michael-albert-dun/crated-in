@@ -115,6 +115,12 @@ const elements = {
   worldRule: document.querySelector("#world-rule"),
   worldLevels: document.querySelector("#world-levels"),
   worldsButton: document.querySelector("#worlds-button"),
+  // The settings checkboxes live in one element that is moved between the home
+  // screen and the play screen, so they can be changed on the fly.
+  settings: document.querySelector("#settings"),
+  homeSettings: document.querySelector("#home-settings"),
+  playSettings: document.querySelector("#play-settings"),
+  settingsButton: document.querySelector("#settings-button"),
   // Test page only (null on the main page).
   select: document.querySelector("#room-select"),
   cheat: document.querySelector("#cheat"),
@@ -1207,7 +1213,16 @@ function showOnly(screen) {
   for (const other of [elements.menuScreen, elements.worldScreen, elements.playScreen]) {
     if (other) other.hidden = other !== screen;
   }
+  if (elements.settings) {
+    (screen === elements.playScreen ? elements.playSettings : elements.homeSettings).appendChild(elements.settings);
+    if (screen === elements.playScreen) setSettingsOpen(false);
+  }
   window.scrollTo(0, 0);
+}
+
+function setSettingsOpen(open) {
+  elements.playSettings.hidden = !open;
+  elements.settingsButton.setAttribute("aria-expanded", String(open));
 }
 
 // Level tiles for world.levels[from..to), numbered by position in the world.
@@ -1387,6 +1402,9 @@ function init() {
   elements.menuButton.addEventListener("click", () => leavePlay("push"));
   if (elements.worldsButton) elements.worldsButton.addEventListener("click", () => showMenu("push"));
   window.addEventListener("popstate", route);
+  if (elements.settingsButton) {
+    elements.settingsButton.addEventListener("click", () => setSettingsOpen(elements.playSettings.hidden));
+  }
   elements.undo.addEventListener("click", undo);
   elements.restart.addEventListener("click", restart);
   elements.gentle.addEventListener("change", () => {
