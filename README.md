@@ -84,7 +84,11 @@ Worlds are defined in `src/worlds.js` (id, name, tagline, rule text, engine rule
 flags, level groups). A world's rules come from there, not from checkboxes, so a
 level can't be played under the wrong ones; adding a world is adding an entry (the
 home cards flow into as many columns as fit). Current worlds: Spread the Load
-(classic push), Three in a Row (`linePush`). The equalise variant (flat-board win) was taken off the main page on 2026-10-01 but its engine support, levels and pool page remain. The test and
+(classic push), Three in a Row (`linePush`), and Open Plan (id `walk`, 2026-10-02: `linePush`
+with `goal: "walkable"`, no exit, won by making the whole room walkable; 4 warm-up
+rooms in `src/levels/levels-walkable-intro.js`, then 2 bridge rooms and the 12 pool rooms in
+`levels-walkable.js`; leaving a solved room by its pillar of light plays the gnome
+transition, `src/gnomes.js`, which `index.html` loads). The equalise variant (flat-board win) was taken off the main page on 2026-10-01 but its engine support, levels and pool page remain. The test and
 pool pages don't load `worlds.js`: they have one implicit world and keep their
 rule checkboxes. Slide-or-climb is meant to join classic and line later as a
 second level group, unlocked after some progress; not built.

@@ -6,7 +6,7 @@
 // symmetry of the rectangle plays identically, so boards are deduplicated up
 // to those symmetries (see canonical).
 //
-//   node experiments/walkable-corners.js [--tier easy|mid|hard] [--sizes 4x4,5x4,5x5]
+//   node experiments/walkable-corners.js [--tier bridge|easy|mid|hard] [--sizes 4x4,5x4,5x5]
 //        [--restarts 3] [--iterations 500] [--seed 1] [--minutes 0] [--out run.log]
 //
 // Tiers are aimed at the density experiment (walkable-density.js): the median
@@ -19,6 +19,8 @@ const { mulberry32 } = require("./random-levels.js");
 const { analyse } = require("./analyse.js");
 
 const TIERS = {
+  // Between the hand-made warm-ups (<= 8 moves, <= 3 pushes) and the first easy room (14 moves, 4 traps).
+  bridge: { minLen: 9, maxLen: 13, minPushes: 3, maxPushes: 4, minTraps: 1 },
   easy: { minLen: 8, maxLen: 14, minPushes: 3, maxPushes: 5, minTraps: 1 },
   mid: { minLen: 14, maxLen: 24, minPushes: 5, maxPushes: 8, minTraps: 2 },
   hard: { minLen: 22, maxLen: 40, minPushes: 7, maxPushes: 12, minTraps: 3 },

@@ -8,6 +8,9 @@
 //   tagline  one line on the home card
 //   rule     paragraphs on the world screen: what is different about this world
 //   rules    engine flags: { linePush, slideClimb }; omitted flags are off
+//   goal     "walkable" for a world whose rooms have no exit and are won by
+//            making every square reachable on foot (boardGoal in game.js);
+//            omitted: rooms have an exit cell, and a room without one is flat-goal
 //   groups   level sets shown in order, each { title, blurb?, levels }; the first
 //            is the warm-up that teaches the mechanic. Slide-or-climb is meant
 //            to arrive for classic and line as a second group once enough of
@@ -20,7 +23,7 @@ const WORLDS = [
   {
     id: "line",
     name: "Three in a Row",
-    tagline: "One crate under you, one just beyond the pile.",
+    tagline: "Use your wand to escape.",
     rule: [
       "The wand puts a crate underneath you, and in the space just beyond the original pile.",
     ],
@@ -33,7 +36,7 @@ const WORLDS = [
   {
     id: "classic",
     name: "Spread the Load",
-    tagline: "A crate on every side of the pile.",
+    tagline: "Escape with a more powerful wand.",
     rule: [
       "The wand puts a crate in every possible position adjacent to the pile it came from.",
     ],
@@ -41,6 +44,21 @@ const WORLDS = [
     groups: [
       { title: "Warm-up", levels: LEVELS.slice(0, 3) },
       { title: "Rooms", levels: LEVELS.slice(3) },
+    ],
+  },
+  {
+    id: "walk",
+    name: "Open Plan",
+    tagline: "Tidy up.",
+    rule: [
+      "There's no way out! You might as well just do what you were told to - rearrange the boxes using your wand so that every square in the room could be reached without it. Supposedly some gnomes would then come to help you out? We'll see.",
+      "You're back to using the basic wand.",
+    ],
+    rules: { linePush: true },
+    goal: "walkable",
+    groups: [
+      { title: "Warm-up", levels: LEVELS_WALKABLE_INTRO },
+      { title: "Rooms", levels: LEVELS_WALKABLE },
     ],
   },
 ];

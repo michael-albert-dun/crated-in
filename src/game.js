@@ -1275,20 +1275,24 @@ function undo() {
 
 // Levels with no target and no exit cell have no "walk somewhere" win
 // condition at all: they win by reflooring the whole board flat (isFlat, in
-// engine.js). Unlike the exit-based game, that flattening is the whole point
-// to *see* happen, so these levels never hide it behind the running offset
-// (below) that makes the exit game's numbers count up instead of resetting.
+// engine.js), or, in the walkable goal, by making it walkable (boardGoal).
+// Flattening is the whole point to *see* happen, so flat-goal levels never hide
+// it behind the running offset (below) that makes the exit game's numbers count
+// up instead of resetting; walkable-goal levels do use the offset, like the
+// exit game, since a reflooring there is incidental.
 function isFlatWinLevel(level) {
   return level.target < 0 && level.exit < 0;
 }
 
 // Which board property wins such a level: "flat" (the default) or, when the
-// page's CRATED_TEST config says goal: "walkable", "walkable" (every open
+// world says goal: "walkable" (worlds.js) or the page's CRATED_TEST config does,
+// "walkable" (every open
 // cell reachable by walking, isWalkable in engine.js). Null for levels that
 // are won by reaching an exit or target.
 function boardGoal(level) {
   if (!isFlatWinLevel(level)) return null;
-  return TEST && TEST.goal === "walkable" ? "walkable" : "flat";
+  const walkable = (state.world && state.world.goal === "walkable") || (TEST && TEST.goal === "walkable");
+  return walkable ? "walkable" : "flat";
 }
 
 function boardWon(level, goal, h) {
@@ -1353,7 +1357,7 @@ function move(d) {
 
   const next = {
     game: out.state, moves: cur.moves + 1, pushes: cur.pushes,
-    offset: flatWin ? 0 : cur.offset + (out.reflooded || 0),
+    offset: goal === "flat" ? 0 : cur.offset + (out.reflooded || 0),
     status: "playing", message: "",
   };
   let phases;
