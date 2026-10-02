@@ -88,6 +88,8 @@ const view = {
   rise: 0, // while floating up the exit column: 0..1
   beam: 0, // the column of light you arrive in: 0 (none) .. 1
   beamRise: 0, // 0..1 while you rise up it, for the motes of light
+  gnomes: null, // during the gnome transition: { plan, s }, see gnomes.js
+  pillarAlpha: 1, // the solved room's pillar of light fades as the gnomes arrive
   // Reflooring shifts every height down together, which changes no rule (they all
   // depend on height differences), so the numbers just keep counting up: `offset`
   // is the number of layers removed so far, added back for display.
@@ -386,6 +388,12 @@ function walkRegion(level, game) {
   }
   const exitLinks = level.exit >= 0 ? queue.filter((c) => level.exitStep[c] >= 0) : [];
   return { cells: queue, links, exitLinks };
+}
+
+// Whether leaving a solved room plays the gnome transition: the page has
+// gnomes.js, there is a next room to build, and motion is not reduced.
+function gnomesWanted() {
+  return typeof gnomeClearPhase === "function" && !REDUCED_MOTION && state.levelIndex + 1 < state.world.levels.length;
 }
 
 // A solved walkable room is still walkable (not pushable): the player can
@@ -770,7 +778,7 @@ function render() {
   // Walkable-region hint: above every crate but under the player. Drawn from a
   // snapshot (pathFade.region) so it can fade out as a push starts and back in
   // for the new region once the push has settled.
-  const showPaths = state.settings.hints && (current.status === "playing" || freeWalking(level, current)) && pathFade.region && pathFade.alpha > 0.01;
+  const showPaths = state.settings.hints && (current.status === "playing" || freeWalking(level, current)) && pathFade.region && pathFade.alpha > 0.01 && !view.gnomes;
   if (showPaths) items.push({ key: 990, dist: 0, draw: (g) => drawWalkPaths(g, pathFade.region, pathFade.alpha) });
   items.push({ key: view.beam > 0 ? 1003 : showPaths ? 995 : view.player.z + 0.5, dist: 0, draw: drawPlayer });
   // A solved walkable room: the pillar of light fixed when it was solved (see move).
@@ -781,8 +789,12 @@ function render() {
     const far = current.pillar;
     const [fx, fy] = [cellX(far % level.width), cellY(Math.floor(far / level.width))];
     // Above the crates on its square, below the player if they stand on it.
-    items.push({ key: view.h[far] + 0.25, dist: 0, draw: (g) => drawLightColumn(g, [fx, fy]) });
+    items.push({
+      key: view.h[far] + 0.25, dist: 0,
+      draw: (g) => drawLightColumn(svgEl("g", { opacity: view.pillarAlpha }, g), [fx, fy]),
+    });
   }
+  if (typeof gnomeItems === "function") gnomeItems(items);
   if (exit && view.rise > 0) items.push({ key: 1001, dist: 0, draw: (g) => drawMotes(g, exit, view.rise) });
   if (view.beam > 0) {
     const [sx, sy] = [cellX(level.start % level.width), cellY(Math.floor(level.start / level.width))];
@@ -803,7 +815,7 @@ function render() {
       if (n < 0) return;
       const X0 = cellX(n % level.width);
       const Y0 = cellY(Math.floor(n / level.width));
-      if (state.settings.hints && current.status === "playing") {
+      if (state.settings.hints && current.status === "playing" && !view.gnomes && !view.beam) {
         // What a move there would actually do, per step() itself (not just the
         // raw gap): matters now that linePush can turn a would-be push into a
         // silent "blocked" instead -- a stale gap-only heuristic would still
@@ -880,14 +892,21 @@ function finishAnimation() {
 // Called whenever the view catches up with the game state. Stepping through the
 // doorway carries you straight on into the next room.
 function settle() {
-  syncView();
-  render();
-  updateHud();
   // A solved walkable-goal room stays on screen, so the solved state can be
-  // looked at (and animated later); the way on is the menu or level picker.
-  // Until they step onto the pillar of light (current.left, see move).
+  // looked at; the way on is the menu or level picker, or stepping onto the
+  // pillar of light (current.left, see move).
   const stays = boardGoal(state.level) === "walkable" && !state.current.left;
-  if (state.current.status === "won" && !stays && state.levelIndex + 1 < state.world.levels.length) {
+  const advance = state.current.status === "won" && !stays && state.levelIndex + 1 < state.world.levels.length;
+  const gnomes = advance && state.current.left && gnomesWanted();
+  // Leaving by the gnome transition: the room is empty by now, so don't redraw
+  // the solved board (it would flash back for a frame) before the next room's build.
+  if (!gnomes) {
+    syncView();
+    render();
+    updateHud();
+  }
+  if (advance) {
+    state.gnomeIn = gnomes;
     openLevel(state.levelIndex + 1, "replace");
   }
 }
@@ -1177,6 +1196,8 @@ function syncView() {
   view.rise = 0;
   view.beam = 0;
   view.beamRise = 0;
+  view.gnomes = null;
+  view.pillarAlpha = 1;
   view.offset = state.current.offset;
   // The walkable-region hint: after a push the new region fades in; otherwise
   // (walks, undo, restart, a new level) it simply follows the board.
@@ -1218,6 +1239,18 @@ function restart() {
   };
   syncView();
   view.player.facing = readyFacing();
+  if (state.gnomeIn) {
+    // Arriving after the gnome transition: the room starts empty and is built
+    // up by gnomes, then the light drops the player in.
+    state.gnomeIn = false;
+    const target = Float64Array.from(state.current.game.h);
+    view.h = new Float64Array(target.length);
+    view.player.alpha = 0;
+    render();
+    updateHud();
+    runPhases([gnomeBuildPhase(state.level, target), gnomeDropPhase()]);
+    return;
+  }
   render();
   updateHud();
   playEntry();
@@ -1296,7 +1329,13 @@ function move(d) {
       ...cur, game: { h: cur.game.h, pos: to }, moves: cur.moves + 1, left,
       message: left ? lastLevelMessage() || cur.message : cur.message,
     };
-    runPhases([walkPhase(from, to)]);
+    const phases = [walkPhase(from, to)];
+    // The gnome transition (gnomes.js, if the page loads it): lifted away by the
+    // light while gnomes clear the room; the next level is built in restart().
+    if (left && gnomesWanted()) {
+      phases.push(gnomeLiftPhase(to), gnomeClearPhase(level, cur.game.h));
+    }
+    runPhases(phases);
     updateHud();
     return;
   }

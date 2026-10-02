@@ -134,6 +134,18 @@ be won, the next move of a shortest solution and how many moves remain, or "This
 room can't be escaped any more". It re-solves after every move, using the
 engine's `solve(level, { from: state })`.
 
+### Gnome transition (experiment, `src/gnomes.js`, pool page only)
+
+Leaving a solved walkable room by its pillar of light plays a deliberately
+frantic transition: the player is lifted away, a flood of gnomes carries every
+crate out, a second flood carries the next level's crates in (the room is
+rebuilt cell by cell, counting up), and a column of light drops the player onto
+the start square. `planGnomes` fixes every route and every crate hand-over time
+up front (seeded), so each stage is a pure function of its clock and a keypress
+can fast-forward it. Only pages that load `gnomes.js` (currently `pool.html`)
+get it; `GNOME_CLEAR_MS` / `GNOME_BUILD_MS` set the lengths, and it is skipped
+under reduced motion and on the last level.
+
 ### Pool UI (`pool.html`)
 
 The same game again, built the same way as the test page (`src/pool-config.js`
