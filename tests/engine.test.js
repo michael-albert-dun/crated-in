@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { parseLevel, createState, step, solve, isValidExit, exitDirs, gateKey, formatLevel, isFlat } = require("../src/engine.js");
+const { parseLevel, createState, step, solve, isValidExit, exitDirs, gateKey, formatLevel, isFlat, isWalkable } = require("../src/engine.js");
 
 const U = 0;
 const D = 1;
@@ -356,4 +356,20 @@ test("classic push next to the exit: heights as before, but `floated` says a cop
   assert.deepStrictEqual(Array.from(out.state.h), [0, 2, 0]); // you +1, the pile -1, then reflood strips the bottom layer
   const plain = parseLevel("0S 4 0");
   assert.strictEqual(step(plain, createState(plain), R).floated, -1);
+});
+
+test("isWalkable: a staircase links a 0 and a 5 that touch; a wall pocket or a cliff does not", () => {
+  const stairs = parseLevel("2 3\n1 4\n0S 5");
+  assert.ok(isWalkable(stairs, createState(stairs).h));
+  const cliff = parseLevel("0S 5\n0 5");
+  assert.ok(!isWalkable(cliff, createState(cliff).h));
+  const pocket = parseLevel("0S # 0");
+  assert.ok(!isWalkable(pocket, createState(pocket).h));
+});
+
+test("solve with walkWin counts a push that leaves the board walkable as a win", () => {
+  const level = parseLevel("0S 2 0");
+  const out = solve(level, { linePush: true, walkWin: true });
+  assert.strictEqual(out.status, "solved");
+  assert.strictEqual(out.pushes, 1);
 });

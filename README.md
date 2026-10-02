@@ -148,6 +148,18 @@ entry's name prefix to `POOL`/"Option N" automatically. Settings and solved
 ticks use their own storage keys (`crated-in.pool.*`), separate from both the
 main page and the test page.
 
+The current batch is the **walkable goal** (2026-10-02): rooms with no exit,
+won by pushing until every open cell can be reached from every other by walking
+alone (`isWalkable` in `engine.js`: cells connected under "heights differ by at
+most 1", so a 0 beside a 5 is fine if a staircase links them). It is selected by
+`goal: "walkable"` in `src/pool-config.js` (`boardGoal` in `game.js`; without it
+a no-exit room means the equalise goal), and `solve`/`analyse` take `walkWin`.
+Boards come from `experiments/walkable-corners.js` (annealing over plain
+rectangles, heights and start cell) and `experiments/walkable-pool.js` (merge,
+verify at height cap 9, pick a spread, `--out src/levels-test/pool.js`);
+`experiments/walkable-density.js` measures how many random boards are solvable.
+`experiments/walkable-picks.js` keeps a copy of the first 12 picks.
+
 ## The board
 
 Play is on a rectangular grid. Each cell is in exactly one of these states:

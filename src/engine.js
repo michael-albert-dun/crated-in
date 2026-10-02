@@ -233,6 +233,40 @@ function isFlat(level, h) {
   return true;
 }
 
+// True when every non-wall cell can be reached from every other by walking
+// alone, i.e. the cells are one connected piece under "neighbours differ by at
+// most 1" (the same rule step() uses for a walk, in both directions, so it
+// doesn't matter where the player stands). Only the chain of steps matters:
+// a 0 next to a 5 is fine as long as a staircase of 1-gaps links them the long
+// way round. Walls split nothing by themselves, but a walled-off pocket makes
+// the room permanently non-walkable. This is the win condition for the
+// "walkable" variant (opts.walkWin in solve); like isFlat it is a property of
+// the board, which only a push can change.
+function isWalkable(level, h) {
+  let first = -1;
+  let open = 0;
+  for (let i = 0; i < h.length; i += 1) {
+    if (level.wall[i]) continue;
+    open += 1;
+    if (first < 0) first = i;
+  }
+  if (first < 0) return true;
+  const seen = new Uint8Array(h.length);
+  const stack = [first];
+  seen[first] = 1;
+  let count = 0;
+  while (stack.length) {
+    const c = stack.pop();
+    count += 1;
+    for (const n of level.nbrs[c]) {
+      if (n < 0 || seen[n] || Math.abs(h[n] - h[c]) > 1) continue;
+      seen[n] = 1;
+      stack.push(n);
+    }
+  }
+  return count === open;
+}
+
 // Top block of `at` explodes: it loses one, and each neighbouring non-wall
 // cell (including the player's) gains one. Mutates h.
 function spread(level, h, at) {
@@ -378,6 +412,9 @@ function stateKey(state) {
 // variant). step() itself never reports this: it stays exit-cell-only, so
 // play (game.js) can run the ordinary push animation and check flatness
 // afterward instead of having a push silently double as a "won" result.
+// opts.walkWin likewise treats a push (or slide) that leaves the board walkable
+// (isWalkable) as a win. A board that is already walkable at the start is not
+// reported by the solver: callers check isWalkable on the start state.
 // opts.slideClimb and opts.linePush are passed straight through to step()
 // (see there).
 // "Hard" and "soft" mode solve identically (a fatal drop is never useful), so
@@ -399,7 +436,8 @@ function solve(level, opts = {}) {
       if (out.result === "blocked" || out.result === "died") continue;
       const changesHeight = out.result === "pushed" || out.result === "slid";
       if (changesHeight && opts.noPushes) continue;
-      const won = out.result === "won" || (opts.flatWin && changesHeight && isFlat(level, out.state.h));
+      const won = out.result === "won" || (opts.flatWin && changesHeight && isFlat(level, out.state.h)) ||
+        (opts.walkWin && changesHeight && isWalkable(level, out.state.h));
       if (won) {
         let moves = DIRS[d].name;
         let pushes = 0;
@@ -431,5 +469,5 @@ function solve(level, opts = {}) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, formatLevel, createState, reflood, isFlat, step, solve };
+  module.exports = { DIRS, parseLevel, makeLevel, outerWalls, isValidExit, exitDirs, gateKey, formatLevel, createState, reflood, isFlat, isWalkable, step, solve };
 }

@@ -1,17 +1,4 @@
-// A throwaway batch of levels to look at and choose between, in level text
-// format. Ephemeral by design: the whole file gets overwritten with a fresh
-// POOL every time there's a new batch to show, rather than growing forever the
-// way src/levels-test/candidates.js was starting to. Once a choice is made,
-// whatever's here can be discarded; nothing else in the game refers to it.
-// See pool.html.
-//
-// Current batch (2026-10-02): "walkable" goal rooms from
-// experiments/walkable-corners.js. No exit: you win by making every cell
-// reachable from every other by walking alone (a push that leaves the room
-// walkable ends the level). Plain rectangles, line push (pool.html turns it
-// on, and sets goal: "walkable" in src/pool-config.js). Ordered roughly easiest
-// to hardest; solutions are proven shortest under linePush at height cap 9, the
-// last move being the winning push.
+// Walkable-goal candidates from experiments/walkable-corners.js (2026-10-01).
 const POOL = [
   {
     name: "Walk 1",

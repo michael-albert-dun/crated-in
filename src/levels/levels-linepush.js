@@ -37,6 +37,9 @@
 // Level 5 lost the single cell at (2,3); Level 6 lost the whole bottom-right
 // corner, (2,3)/(3,2)/(3,3) together. Both keep their original solution
 // exactly, with the traps that made them interesting intact.
+//
+// Levels 7-21 are the pool batch of 2026-10-01 (experiments/line-corners.js),
+// kept in pool order, roughly easiest to hardest by solution length.
 const LEVELS_LINEPUSH = [
   {
     name: "Level 1",
@@ -127,5 +130,131 @@ const LEVELS_LINEPUSH = [
       4  5  5  1
       1  4  5  #
       0S  0  #  #`,
+  },
+  {
+    name: "Level 10",
+    info: "4x4, 17 moves, 5 pushes, 3 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "RRRULULDRUUULUURR",
+    text: `
+      0  3  0  E
+      #  2  5  0
+      4  4  2  #
+      0S  1  3  0`,
+  },
+  {
+    name: "Level 11",
+    info: "4x4, 16 moves, 6 pushes, 4 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "URRRRULUULURRRRR",
+    text: `
+      5  0  5  E
+      3  1  3  0
+      2  5  1  2
+      0S  4  2  3`,
+  },
+  {
+    name: "Level 12",
+    info: "4x5, 19 moves, 6 pushes, 4 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "RURRRRULLLUURRRRRRU",
+    text: `
+      #  5  0  E
+      1  3  5  0
+      2  5  2  5
+      2  2  5  2
+      0S  5  1  #`,
+  },
+  {
+    name: "Level 13",
+    info: "5x4, 21 moves, 6 pushes, 8 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "RRURRUUULLLDDRRUUUUUR",
+    text: `
+      #  5  4  0  E
+      2  4  2  4  0
+      5  4  5  2  4
+      1S  1  3  0  #`,
+  },
+  {
+    name: "Level 14",
+    info: "4x5, 20 moves, 7 pushes, 5 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "UUURRRRULLLUURRRRRRU",
+    text: `
+      #  5  0  E
+      0  3  5  0
+      2  5  2  5
+      2  2  5  2
+      0S  4  2  #`,
+  },
+  {
+    name: "Level 15",
+    info: "4x5, 23 moves, 6 pushes, 7 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "RRRRULDLLUURULUULURRRRR",
+    text: `
+      0  3  0  E
+      1  3  4  0
+      #  0  2  #
+      4  4  4  0
+      0S  3  0  0`,
+  },
+  {
+    name: "Level 16",
+    info: "5x4, 22 moves, 7 pushes, 8 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "RRURRUUULLLLDDRRUUUUUR",
+    text: `
+      #  4  4  0  E
+      3  5  2  4  0
+      3  4  5  2  5
+      0S  1  3  0  #`,
+  },
+  {
+    name: "Level 17",
+    info: "5x4, 23 moves, 8 pushes, 6 traps, 3 ways (from the pool, found by experiments/line-corners.js)",
+    solution: "UUDRRULURRURDRRUURDRRUU",
+    text: `
+      3  #  4  0  E
+      4  0  5  5  0
+      0  4  0  3  1
+      1S  3  5  #  1`,
+  },
+  {
+    name: "Level 18",
+    info: "5x5, 26 moves, 8 pushes, 8 traps, 2 ways (from the pool, found by experiments/line-corners.js)",
+    solution: "UUUURRRDDDDLRULURRULUURRRU",
+    text: `
+      #  3  4  0  E
+      0  3  0  2  0
+      0  4  0  3  5
+      3  0  2  4  5
+      1S  5  0  2  #`,
+  },
+  {
+    name: "Level 19",
+    info: "4x6, 34 moves, 8 pushes, 5 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "RRRRRRUULDRDLLLLUUUURRRLDDDRRURUUU",
+    text: `
+      1  3  1  E
+      2  5  5  0
+      5  1  #  2
+      3  #  1  1
+      4  2  5  2
+      0S  4  3  2`,
+  },
+  {
+    name: "Level 20",
+    info: "6x4, 34 moves, 12 pushes, 8 traps, 1 way (from the pool, found by experiments/line-corners.js)",
+    solution: "UURUURRRRDDRRRLURRDRUUULDDRRUUUUUR",
+    text: `
+      0  5  1  #  0  E
+      3  4  2  4  5  0
+      1  4  0  0  4  3
+      1S  4  #  1  3  4`,
+  },
+  {
+    name: "Level 21",
+    info: "6x4, 39 moves, 13 pushes, 8 traps, 2 ways (from the pool, found by experiments/line-corners.js)",
+    solution: "UURUURRRDDRRRRUULDLLUURDRRUULDDRRUUUUUR",
+    text: `
+      0  4  1  #  0  E
+      3  4  2  5  4  0
+      1  4  0  0  4  3
+      1S  2  #  1  3  4`,
   },
 ];

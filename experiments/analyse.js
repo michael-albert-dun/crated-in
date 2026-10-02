@@ -2,7 +2,12 @@
 // win) so a level can be judged on more than the length of its shortest solution.
 //
 //   const { analyse } = require("./analyse.js");
-//   analyse(level, { justEnough, slideClimb, linePush, maxHeight, maxStates })
+//   analyse(level, { justEnough, slideClimb, linePush, walkWin, maxHeight, maxStates })
+//
+// With walkWin the win is a push that leaves the whole board walkable (see
+// isWalkable in engine.js) rather than stepping out of an exit; everything
+// below then means "to get the board walkable". A board that is walkable
+// before any move is returned as { alreadyWon: true } and not analysed.
 //
 // Piles above maxHeight are treated as out of bounds. Its default here is 6,
 // lower than solve()'s default of 9, on the assumption that "no sensible
@@ -33,15 +38,16 @@
 //                   push (so a cul-de-sac you visit to push a pile out counts)
 //   disconnected    open cells that can't be reached from the start even by
 //                   walking with no height limit (enclosed by walls)
-const { createState, step, DIRS } = require("../src/engine.js");
+const { createState, step, isWalkable, DIRS } = require("../src/engine.js");
 
 function keyOf(state) {
   return String.fromCharCode(state.pos, ...state.h);
 }
 
 function analyse(level, opts = {}) {
-  const { maxHeight = 6, maxStates = 500000, justEnough = false, slideClimb = false, linePush = false } = opts;
+  const { maxHeight = 6, maxStates = 500000, justEnough = false, slideClimb = false, linePush = false, walkWin = false } = opts;
   const first = opts.from || createState(level);
+  if (walkWin && isWalkable(level, first.h)) return { alreadyWon: true };
   const openCells = level.wall.reduce((count, w) => count + (w ? 0 : 1), 0);
   const reach = new Set([level.start]);
   for (const cell of reach) for (const n of level.nbrs[cell]) if (n >= 0) reach.add(n);
@@ -64,7 +70,8 @@ function analyse(level, opts = {}) {
     for (let d = 0; d < DIRS.length; d += 1) {
       const out = step(level, state, d, { justEnough, slideClimb, linePush });
       if (out.result === "blocked" || out.result === "died") continue;
-      if (out.result === "won") {
+      const changes = out.result === "pushed" || out.result === "slid";
+      if (out.result === "won" || (walkWin && changes && isWalkable(level, out.state.h))) {
         winMove[head] = d;
         continue;
       }
@@ -179,7 +186,7 @@ function analyse(level, opts = {}) {
   return {
     ...result,
     length: best + 1,
-    pushes,
+    pushes: walkWin ? pushes + 1 : pushes, // the winning push itself is the final move
     ways: totalWays,
     traps,
     revisit: 1 - cells.size / path.length,

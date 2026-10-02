@@ -388,13 +388,53 @@ function walkRegion(level, game) {
   return { cells: queue, links, exitLinks };
 }
 
+// A solved walkable room is still walkable (not pushable): the player can
+// wander round it until they step onto the pillar of light, which carries
+// them on to the next room.
+function freeWalking(level, cur) {
+  return cur.status === "won" && boardGoal(level) === "walkable";
+}
+
+// Where the pillar of light goes in a solved walkable room: the open cell that
+// is furthest to *reach as an exit*. A pillar is like the exit cell (inert, and
+// stepped onto from any open neighbour whatever the height gap), so a cell's
+// distance is 1 + the shortest walk, by the walkRegion rule, to one of its
+// neighbours, with the cell itself taken out of the room first (it would no
+// longer be walkable through). Judging by plain walking distance instead put
+// the pillar right beside the player whenever the walk between them was long.
+// Ties: the lowest index. The player's own cell is never chosen.
+function farthestWalkCell(level, game) {
+  let far = game.pos;
+  let farDist = -1;
+  for (let c = 0; c < level.wall.length; c += 1) {
+    if (level.wall[c] || c === game.pos) continue;
+    const dist = new Map([[game.pos, 0]]);
+    const queue = [game.pos];
+    for (let head = 0; head < queue.length; head += 1) {
+      const at = queue[head];
+      for (const n of level.nbrs[at]) {
+        if (n < 0 || n === c || dist.has(n) || Math.abs(game.h[n] - game.h[at]) > 1) continue;
+        dist.set(n, dist.get(at) + 1);
+        queue.push(n);
+      }
+    }
+    let best = Infinity;
+    for (const n of level.nbrs[c]) if (n >= 0 && dist.has(n)) best = Math.min(best, dist.get(n) + 1);
+    if (best < Infinity && best > farDist) {
+      far = c;
+      farDist = best;
+    }
+  }
+  return far;
+}
+
 // The hint itself (part of "Show move hints", in place of colouring the walkable
 // neighbours): a green line between the centres of each linked pair.
 const pathFade = { region: null, alpha: 1, raf: 0, afterPush: false };
 
 function refreshPaths() {
   const { level, current } = state;
-  pathFade.region = current && current.status === "playing" ? walkRegion(level, current.game) : null;
+  pathFade.region = current && (current.status === "playing" || freeWalking(state.level, current)) ? walkRegion(level, current.game) : null;
 }
 
 // Eases the hint's opacity to `to`; instant under reduced motion.
@@ -730,9 +770,19 @@ function render() {
   // Walkable-region hint: above every crate but under the player. Drawn from a
   // snapshot (pathFade.region) so it can fade out as a push starts and back in
   // for the new region once the push has settled.
-  const showPaths = state.settings.hints && current.status === "playing" && pathFade.region && pathFade.alpha > 0.01;
+  const showPaths = state.settings.hints && (current.status === "playing" || freeWalking(level, current)) && pathFade.region && pathFade.alpha > 0.01;
   if (showPaths) items.push({ key: 990, dist: 0, draw: (g) => drawWalkPaths(g, pathFade.region, pathFade.alpha) });
   items.push({ key: view.beam > 0 ? 1003 : showPaths ? 995 : view.player.z + 0.5, dist: 0, draw: drawPlayer });
+  // A solved walkable room: the pillar of light fixed when it was solved (see move).
+  // Held back only while the winning push is still animating; walks made after
+  // the solve keep it up (the state before such a walk was already won).
+  const prior = state.history[state.history.length - 1];
+  if (freeWalking(level, current) && (!anim || (prior && prior.status === "won"))) {
+    const far = current.pillar;
+    const [fx, fy] = [cellX(far % level.width), cellY(Math.floor(far / level.width))];
+    // Above the crates on its square, below the player if they stand on it.
+    items.push({ key: view.h[far] + 0.25, dist: 0, draw: (g) => drawLightColumn(g, [fx, fy]) });
+  }
   if (exit && view.rise > 0) items.push({ key: 1001, dist: 0, draw: (g) => drawMotes(g, exit, view.rise) });
   if (view.beam > 0) {
     const [sx, sy] = [cellX(level.start % level.width), cellY(Math.floor(level.start / level.width))];
@@ -747,13 +797,13 @@ function render() {
 
   // Tap targets: the four neighbours of the player, and on the target cell,
   // the player's own square or the doorway steps out.
-  if (current.status === "playing") {
+  if (current.status === "playing" || freeWalking(level, current)) {
     const pos = current.game.pos;
     level.nbrs[pos].forEach((n, d) => {
       if (n < 0) return;
       const X0 = cellX(n % level.width);
       const Y0 = cellY(Math.floor(n / level.width));
-      if (state.settings.hints) {
+      if (state.settings.hints && current.status === "playing") {
         // What a move there would actually do, per step() itself (not just the
         // raw gap): matters now that linePush can turn a would-be push into a
         // silent "blocked" instead -- a stale gap-only heuristic would still
@@ -833,7 +883,11 @@ function settle() {
   syncView();
   render();
   updateHud();
-  if (state.current.status === "won" && state.levelIndex + 1 < state.world.levels.length) {
+  // A solved walkable-goal room stays on screen, so the solved state can be
+  // looked at (and animated later); the way on is the menu or level picker.
+  // Until they step onto the pillar of light (current.left, see move).
+  const stays = boardGoal(state.level) === "walkable" && !state.current.left;
+  if (state.current.status === "won" && !stays && state.levelIndex + 1 < state.world.levels.length) {
     openLevel(state.levelIndex + 1, "replace");
   }
 }
@@ -1137,7 +1191,8 @@ function syncView() {
   }
   Object.assign(pl, {
     x: c.x, y: c.y, base: game.h[game.pos], z: game.h[game.pos],
-    alpha: status === "playing" ? 1 : 0, scale: 1, leanX: 0, leanY: 0,
+    // A solved walkable room keeps its player: nobody leaves through a doorway.
+    alpha: status === "playing" || (status === "won" && boardGoal(state.level) === "walkable") ? 1 : 0, scale: 1, leanX: 0, leanY: 0,
   });
 }
 
@@ -1194,6 +1249,19 @@ function isFlatWinLevel(level) {
   return level.target < 0 && level.exit < 0;
 }
 
+// Which board property wins such a level: "flat" (the default) or, when the
+// page's CRATED_TEST config says goal: "walkable", "walkable" (every open
+// cell reachable by walking, isWalkable in engine.js). Null for levels that
+// are won by reaching an exit or target.
+function boardGoal(level) {
+  if (!isFlatWinLevel(level)) return null;
+  return TEST && TEST.goal === "walkable" ? "walkable" : "flat";
+}
+
+function boardWon(level, goal, h) {
+  return goal === "walkable" ? isWalkable(level, h) : isFlat(level, h);
+}
+
 function lastLevelMessage() {
   if (state.levelIndex + 1 < state.world.levels.length) return "";
   return WORLD_LIST ? `That was the last level in ${state.world.name}.` : "That was the last level.";
@@ -1202,15 +1270,36 @@ function lastLevelMessage() {
 function move(d) {
   finishAnimation();
   const cur = state.current;
-  if (cur.status !== "playing") return;
   const { level } = state;
-  const flatWin = isFlatWinLevel(level);
+  if (cur.status !== "playing" && !freeWalking(level, cur)) return;
+  const goal = boardGoal(level);
+  const flatWin = goal !== null;
   const opts = {
     soft: state.settings.gentle, justEnough: state.settings.justEnough, ...ruleOpts(),
   };
   const from = cur.game.pos;
   const to = level.nbrs[from][d];
   view.player.facing = d;
+  if (freeWalking(level, cur)) {
+    // Walking only: a step up or down of at most 1, or onto the pillar from
+    // any neighbouring square, like an exit. Anything else (including what
+    // would be a push) does nothing, so the solved board stays solved.
+    const gap = to < 0 ? 0 : cur.game.h[to] - cur.game.h[from];
+    if (to < 0 || (to !== cur.pillar && Math.abs(gap) >= 2)) {
+      runPhases([nudgePhase(d)]);
+      return;
+    }
+    state.history.push(cur);
+    // Stepping onto the pillar of light leaves the room, like an exit.
+    const left = to === cur.pillar;
+    state.current = {
+      ...cur, game: { h: cur.game.h, pos: to }, moves: cur.moves + 1, left,
+      message: left ? lastLevelMessage() || cur.message : cur.message,
+    };
+    runPhases([walkPhase(from, to)]);
+    updateHud();
+    return;
+  }
   const out = step(level, cur.game, d, opts);
 
   if (out.result === "blocked") {
@@ -1234,9 +1323,10 @@ function move(d) {
     pathFade.afterPush = true;
     fadePaths(0, 200);
     phases = out.result === "slid" ? [slidePhases(cur.game, out, d)] : pushPhases(cur.game, out, d);
-    if (flatWin && isFlat(level, out.state.h)) {
+    if (flatWin && boardWon(level, goal, out.state.h)) {
       next.status = "won";
-      next.message = lastLevelMessage();
+      next.message = goal === "walkable" ? "Every square is walkable." : lastLevelMessage();
+      if (goal === "walkable") next.pillar = farthestWalkCell(level, out.state);
       state.solved.add(solvedKey(state.world, state.levelIndex));
       saveStorage();
     }
@@ -1262,10 +1352,10 @@ function move(d) {
 function advice() {
   const cur = state.current;
   if (!state.cheat || cur.status !== "playing") return null;
-  const flatWin = isFlatWinLevel(state.level);
+  const goal = boardGoal(state.level);
   const out = solve(state.level, {
     from: cur.game, justEnough: state.settings.justEnough, ...ruleOpts(),
-    maxHeight: 12, flatWin,
+    maxHeight: 12, flatWin: goal === "flat", walkWin: goal === "walkable",
   });
   return out;
 }
@@ -1296,9 +1386,12 @@ function updateHud() {
     box.textContent = `Peek: go ${DIR_WORDS[DIRS.findIndex((dir) => dir.name === result.moves[0])]} next (${result.moves.length} moves left).`;
   } else if (result.status === "unsolvable") {
     box.className = "dead";
-    box.textContent = isFlatWinLevel(state.level)
-      ? "This board can't be equalised any more. Undo, or restart."
-      : "This room can't be escaped any more. Undo, or restart.";
+    const goal = boardGoal(state.level);
+    box.textContent = goal === "walkable"
+      ? "This room can't be made walkable any more. Undo, or restart."
+      : goal === "flat"
+        ? "This board can't be equalised any more. Undo, or restart."
+        : "This room can't be escaped any more. Undo, or restart.";
   } else {
     box.textContent = "Couldn't tell: the search limit was reached.";
   }
