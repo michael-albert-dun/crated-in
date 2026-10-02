@@ -51,7 +51,7 @@ const WORLDS = [
     name: "Open Plan",
     tagline: "Tidy up.",
     rule: [
-      "There's no way out! You might as well just do what you were told to - rearrange the boxes using your wand so that every square in the room could be reached without it. Supposedly some gnomes would then come to help you out? We'll see.",
+      "There's no way out! You might as well just do what you were told to - rearrange the boxes using your wand so that every square in the room can be reached without it. Supposedly, some gnomes will then come to help you out. We'll see.",
       "You're back to using the basic wand.",
     ],
     rules: { linePush: true },
